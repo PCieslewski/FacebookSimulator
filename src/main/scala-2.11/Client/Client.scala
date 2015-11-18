@@ -31,6 +31,13 @@ class Client(name_p: String) extends Actor {
     case Failure(t) => println("An error has occured: " + t.getMessage)
   }
 
+  //Testing passing something through a request. Passes Pawel and returns Hello there Pawel.
+  val response2: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"), entity = "Pawel")).mapTo[HttpResponse]
+  response2 onComplete {
+    case Success(post) => println(post.entity.asString)
+    case Failure(t) => println("An error has occured: " + t.getMessage)
+  }
+
 
   def receive = {
     case _ => {

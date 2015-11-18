@@ -23,6 +23,10 @@ class Handler extends Actor with ActorLogging {
     case HttpRequest(GET, Uri.Path("/ping"), _, _, _) =>
       sender ! HttpResponse(entity = "PONG!")
 
+    case HttpRequest(GET, Uri.Path("/hello"), _, entity: HttpEntity, _) =>
+      val name = entity.data.asString
+      sender ! HttpResponse(entity = "Hello there " + name + "!")
+
   }
 
 }
