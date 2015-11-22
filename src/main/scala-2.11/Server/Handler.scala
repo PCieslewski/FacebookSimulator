@@ -23,10 +23,22 @@ class Handler extends Actor with ActorLogging {
     case HttpRequest(GET, Uri.Path("/ping"), _, _, _) =>
       sender ! HttpResponse(entity = "PONG!")
 
-    case HttpRequest(GET, Uri.Path("/hello"), _, entity: HttpEntity, _) =>
+    case HttpRequest(GET, Uri.Path("/hello"), headers: List[HttpHeader], entity: HttpEntity, _) =>
       val name = entity.data.asString
+      println(getValue(headers,"client-id"))
       sender ! HttpResponse(entity = "Hello there " + name + "!")
 
+  }
+
+  def getValue(headers: List[HttpHeader], name: String): String ={
+    val itr = headers.iterator;
+    while(itr.hasNext){
+      val header = itr.next();
+      if(header.name.equals(name)){
+        return header.value
+      }
+    }
+    return null
   }
 
 }
