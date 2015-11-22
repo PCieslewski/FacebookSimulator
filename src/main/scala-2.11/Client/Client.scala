@@ -1,12 +1,15 @@
 package Client
 
+import java.util
+
 import akka.actor.{ActorSystem, Actor}
 import akka.pattern.ask
 import akka.io.IO
 import akka.util.Timeout
 import spray.can.Http
+import spray.http.HttpHeaders.RawHeader
 import spray.http.HttpMethods._
-import spray.http.{Uri, HttpRequest, HttpResponse}
+import spray.http.{HttpHeader, Uri, HttpRequest, HttpResponse}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -21,7 +24,8 @@ class Client(name_p: String) extends Actor {
   implicit var ActorSystem = context.system
   implicit val timeout: Timeout = 15.second // for the actor 'asks'
 
-  //Each client knows their name. It is their identifier.
+  //Each client knows their name.
+  var id: String = "0"
   val name: String = name_p
 
   //Testing a function call!
@@ -38,7 +42,12 @@ class Client(name_p: String) extends Actor {
   }
 
   //Testing passing something through a request. Passes Pawel and returns Hello there Pawel.
-  val response2: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"), entity = "Pawel")).mapTo[HttpResponse]
+  var headers = List(new RawHeader("client-name",name),new RawHeader("client-id",id))
+  //headers.add(new RawHeader("client-name",name))
+  //headers.add(new RawHeader("client-id",id))
+
+
+  val response2: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"), headers, entity = "Pawel")).mapTo[HttpResponse]
   response2 onComplete {
     case Success(post) => println(post.entity.asString)
     case Failure(t) => println("An error has occured: " + t.getMessage)
@@ -58,5 +67,7 @@ class Client(name_p: String) extends Actor {
     }
     return fString
   }
+
+
 
 }
