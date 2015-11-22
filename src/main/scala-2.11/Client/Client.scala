@@ -24,6 +24,12 @@ class Client(name_p: String) extends Actor {
   //Each client knows their name. It is their identifier.
   val name: String = name_p
 
+  //Testing a function call!
+  val fPong = getPong
+  fPong onSuccess {
+    case (str: String) => println("YES! " + str)
+  }
+
   //Testing just a ping -- should print pong back.
   val response: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/ping"))).mapTo[HttpResponse]
   response onComplete {
@@ -43,6 +49,14 @@ class Client(name_p: String) extends Actor {
     case _ => {
       println("Msg.")
     }
+  }
+
+  def getPong: Future[String] = {
+    val fResponse: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/ping"))).mapTo[HttpResponse]
+    val fString: Future[String] = fResponse.flatMap{
+      case (resp: HttpResponse) => Future{resp.entity.asString}
+    }
+    return fString
   }
 
 }
