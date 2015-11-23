@@ -1,9 +1,9 @@
 package POJOs
 
-class Page {
-  var profile: Profile = _
-  var posts: List[Post] = _
-  var pictures: Album = _
+class Page(name: String) {
+  var profile: Profile = new Profile(name)
+  var posts: List[Post] = List()
+  var pictures: Album = new Album()
 
   override def toString() : String = {
     var myString = "Profile: \n" + profile + "\n"

@@ -1,10 +1,18 @@
 package POJOs
 
-class Post {
-  var postId: Int = _
-  var postText: Text = _
-  var postPicture: Picture = _
-  var comments: List[Text] = _
+class Post(postId_p: Int, postText_p: Text, postPicture_p: Picture) {
+  var postId: Int = postId_p
+  var postText: Text = postText_p
+  var postPicture: Picture = postPicture_p
+  var comments: List[Text] = List()
+
+  def this(postId_p: Int, postText_p: Text) {
+    this(postId_p, postText_p, null)
+  }
+
+  def this(postId_p: Int, postPicture_p: Picture) {
+    this(postId_p, null, postPicture_p)
+  }
 
   override def toString() : String = {
     var myString = "Post Id: " + postId + "\nPost's message: " + postText

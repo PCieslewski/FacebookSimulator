@@ -1,7 +1,8 @@
 package POJOs
 
-class Album {
-  var albumPics: List[Picture] = _
+class Album() {
+
+  val albumPics: List[Picture] = List()
 
   override def toString() : String = {
     var myString = "Album Array: \n"

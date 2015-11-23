@@ -1,8 +1,8 @@
 package POJOs
 
-class Friend {
-  var id: Int = _
-  var name: String = _
+class Friend(id_p: Int, name_p: String) {
+  var id: Int = id_p
+  var name: String = name_p
 
   override def toString() : String = {
     val myString: String = "ID: " + id + "\nname: " + name

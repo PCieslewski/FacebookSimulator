@@ -1,7 +1,7 @@
 package POJOs
 
-class FriendsList {
-  var friends: List[Friend] = _
+class FriendsList() {
+  var friends: List[Friend] = List()
 
   override def toString() : String = {
     var myString = "Friends: \n"
