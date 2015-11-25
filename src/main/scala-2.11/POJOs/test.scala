@@ -21,49 +21,6 @@ object test{
     println(will)
     val test = new Page("Pawel")
 
-//    println(test.profile)
-
-    //somehow import from Text
-
-
-//    import MyJsonProtocol
-//    import POJOs.MyJsonProtocol
-    import POJOs.Text
-
-//    import DefaultJsonProtocol._
-
-//    implicit object TextJsonFormat extends RootJsonFormat[Text] {
-//      def write(text: Text) =
-//        JsArray(JsString(text.message), JsString(text.poster))
-//
-//      def read(value: JsValue) = value match {
-//        case JsArray(Vector(JsString(message), JsString(poster))) =>
-//          new Text(message, poster)
-//        case _ => deserializationError("Text expected")
-//      }
-//    }
-
-//    implicit object PictureJsonFormat extends RootJsonFormat[Picture] {
-//      def write(picture: Picture) =
-//        JsArray(JsString(picture.picture))
-//
-//      def read(value: JsValue) = value match {
-//        case JsArray(Vector(JsString(picture))) =>
-//          new Picture(picture)
-//        case _ => deserializationError("Picture expected")
-//      }
-//    }
-
-//    implicit object ProfileJsonFormat extends RootJsonFormat[Profile] {
-//      def write(profile: Profile) =
-//        JsArray(JsString(profile.name), JsString(profile.birthday), Js(profile.profilePic))
-//
-//      def read(value: JsValue) = value match {
-//        case JsArray(Vector(JsString(picture))) =>
-//          new Picture(picture)
-//        case _ => deserializationError("Picture expected")
-//      }
-//    }
 
     import POJOs.CustomJsonProtocol._
 
@@ -75,7 +32,7 @@ object test{
 //    println("Back to (scala) object")
 //    println(bb)
 
-
+    println("PICTURE!")
     val picIn = new Picture("my pic!").toJson
     println(picIn)
 
@@ -85,6 +42,7 @@ object test{
     val tt = new Profile("William")
     tt.birthday = "June"
     tt.profilePic.pic = "MY PICTURE!!!"
+    tt.relationshipStatus = "Single"
 
     println(tt)
     println("*****")
@@ -94,5 +52,22 @@ object test{
     println("DE ______")
     val normPro = jsonPro.convertTo[Profile]
     println(normPro)
+
+    println("Friend Example:")
+    val friend: Friend = new Friend(3, "NG")
+    val jsonFriend = friend.toJson
+    println("JSON:")
+    println(jsonFriend)
+
+    println("Back to friend object")
+    val normFriend = jsonFriend.convertTo[Friend]
+    println(normFriend)
+
+
+    println("FOOD EX!")
+    val nums: List[Int] = List(1,2,3)
+    val food: Food = new Food(nums)
+    println(food.toJson)
+
   }
 }
