@@ -10,13 +10,5 @@ object TestJson{
 
     import CustomJsonProtocol._
 
-    val myText = new Text("HelloWorld","PDizzle")
-
-    val j = myText.toJson
-
-    val myText2 = j.convertTo[Text]
-
-    println(myText2)
-
   }
 }

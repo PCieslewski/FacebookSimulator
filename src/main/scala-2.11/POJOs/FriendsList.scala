@@ -1,16 +1,7 @@
 package POJOs
 
 class FriendsList() {
-  var friends: List[Friend] = List()
 
-  override def toString() : String = {
-    var myString = "Friends: \n"
-    var index = 0
-    for(frds <- friends) {
-      myString += "Friend #" + index + "\n"
-      index += 1
-      myString += (frds + "\n")
-    }
-    return myString
-  }
+  val friends: List[Friend] = List()
+
 }
