@@ -10,7 +10,7 @@ object test{
     val myPro: Profile = new Profile("will")
     myPro.birthday = "june"
     myPro.name = "will"
-    myPro.status = In_A_Relationship()
+    myPro.status = "Single"
 
     println(myPro)
 
@@ -19,6 +19,9 @@ object test{
     will.name = "livesey"
 
     println(will)
+    val test = new Page("Pawel")
+
+    println(test.profile)
 
     //somehow import from Text
 
