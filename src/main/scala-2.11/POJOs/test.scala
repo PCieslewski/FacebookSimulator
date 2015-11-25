@@ -10,9 +10,9 @@ object test{
     val myPro: Profile = new Profile("will")
     myPro.birthday = "june"
     myPro.name = "will"
-    myPro.status = "Single"
+//    myPro.status = "Single"
 
-    println(myPro)
+//    println(myPro)
 
     val will: Friend = new Friend(0,"Pawel")
     will.id = 3
@@ -21,7 +21,7 @@ object test{
     println(will)
     val test = new Page("Pawel")
 
-    println(test.profile)
+//    println(test.profile)
 
     //somehow import from Text
 
@@ -32,27 +32,27 @@ object test{
 
 //    import DefaultJsonProtocol._
 
-    implicit object TextJsonFormat extends RootJsonFormat[Text] {
-      def write(text: Text) =
-        JsArray(JsString(text.message), JsString(text.poster))
+//    implicit object TextJsonFormat extends RootJsonFormat[Text] {
+//      def write(text: Text) =
+//        JsArray(JsString(text.message), JsString(text.poster))
+//
+//      def read(value: JsValue) = value match {
+//        case JsArray(Vector(JsString(message), JsString(poster))) =>
+//          new Text(message, poster)
+//        case _ => deserializationError("Text expected")
+//      }
+//    }
 
-      def read(value: JsValue) = value match {
-        case JsArray(Vector(JsString(message), JsString(poster))) =>
-          new Text(message, poster)
-        case _ => deserializationError("Text expected")
-      }
-    }
-
-    implicit object PictureJsonFormat extends RootJsonFormat[Picture] {
-      def write(picture: Picture) =
-        JsArray(JsString(picture.picture))
-
-      def read(value: JsValue) = value match {
-        case JsArray(Vector(JsString(picture))) =>
-          new Picture(picture)
-        case _ => deserializationError("Picture expected")
-      }
-    }
+//    implicit object PictureJsonFormat extends RootJsonFormat[Picture] {
+//      def write(picture: Picture) =
+//        JsArray(JsString(picture.picture))
+//
+//      def read(value: JsValue) = value match {
+//        case JsArray(Vector(JsString(picture))) =>
+//          new Picture(picture)
+//        case _ => deserializationError("Picture expected")
+//      }
+//    }
 
 //    implicit object ProfileJsonFormat extends RootJsonFormat[Profile] {
 //      def write(profile: Profile) =
@@ -65,19 +65,34 @@ object test{
 //      }
 //    }
 
-    val aa = new Text("Hey", "Will").toJson
-    println("Json stuff:")
-    println(aa)
+    import POJOs.CustomJsonProtocol._
 
-    val bb = aa.convertTo[Text]
-    println("Back to (scala) object")
-    println(bb)
+//    val aa = new Text("Hey", "Will").toJson
+//    println("Json stuff:")
+//    println(aa)
+//
+//    val bb = aa.convertTo[Text]
+//    println("Back to (scala) object")
+//    println(bb)
+
 
     val picIn = new Picture("my pic!").toJson
     println(picIn)
 
     val picOut = picIn.convertTo[Picture]
-    println(picOut)
+    println(picOut.pic)
 
+    val tt = new Profile("William")
+    tt.birthday = "June"
+    tt.profilePic.pic = "MY PICTURE!!!"
+
+    println(tt)
+    println("*****")
+    val jsonPro = tt.toJson
+    println(jsonPro)
+
+    println("DE ______")
+    val normPro = jsonPro.convertTo[Profile]
+    println(normPro)
   }
 }

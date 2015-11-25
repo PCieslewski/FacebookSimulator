@@ -12,23 +12,5 @@ class Text(message_p: String, poster_p: String) extends DefaultJsonProtocol {
     return myString
   }
 
-
-  import DefaultJsonProtocol._
-//object MyJsonProtocol extends DefaultJsonProtocol {
-
-//  implicit object TextJsonFormat extends RootJsonFormat[Text] {
-//    def write(text: Text) =
-//      JsArray(JsString(text.message), JsString(text.poster))
-//
-//    def read(value: JsValue) = value match {
-//      case JsArray(Vector(JsString(message), JsString(poster))) =>
-//        new Text(message, poster)
-//      case _ => deserializationError("Text expected")
-//    }
-//  }
-
-//}
-
-
 }
 
