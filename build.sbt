@@ -13,6 +13,7 @@ libraryDependencies ++= Seq(
   "io.spray" %% "spray-can" % "1.3.3",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
   "org.jvnet.mimepull" % "mimepull" % "1.9.6"
+  "io.spray" %%  "spray-json" % "1.3.2"
 )
 
 fork in run := true
