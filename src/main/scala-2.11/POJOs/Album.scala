@@ -1,17 +1,12 @@
 package POJOs
 
-class Album() {
+class Album(pictures_p: List[Picture]) {
 
-  val pictures: List[Picture] = List()
+  var pictures = pictures_p
 
-  override def toString() : String = {
-    var myString = "Album Array: \n"
-    var index = 0
-    for(pics <- pictures) {
-      myString += "Picture Number #" + index + "\n"
-      index += 1
-      myString += (pics + "\n")
-    }
-    return myString
+  //Empty Constructor
+  def this(){
+    this(List())
   }
+
 }

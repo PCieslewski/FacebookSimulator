@@ -10,9 +10,7 @@ object test{
 
     println(myPro)
 
-    val will: Friend = new Friend(0,"Pawel")
-    will.id = 3
-    will.name = "livesey"
+    val will: Friend = new Friend(0,"Will")
 
     println(will)
     val test = new Page("Pawel")

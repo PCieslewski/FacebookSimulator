@@ -1,7 +1,12 @@
 package POJOs
 
-class FriendsList() {
+class FriendsList(friends_p: List[Friend]) {
 
-  val friends: List[Friend] = List()
+  var friends: List[Friend] = List()
+
+  //Empty Constructor
+  def this(){
+    this(List())
+  }
 
 }

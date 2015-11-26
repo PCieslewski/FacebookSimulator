@@ -1,7 +1,12 @@
 package POJOs
 
-class PostsList() {
+class PostsList(posts_p: List[FbPost]) {
 
-  val posts: List[Post] = List()
+  var posts: List[FbPost] = posts_p
+
+  //Empty constructor
+  def this(){
+    this(List())
+  }
 
 }
