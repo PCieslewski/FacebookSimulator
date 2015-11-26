@@ -47,7 +47,26 @@ object Router extends App with SimpleRoutingApp{
           }
         }
       }
+    }~
+    path("friend"){
+      post {
+        decompressRequest() {
+          entity(as[AddFriend]) { addFri =>
+            detach() {
+              val fResponse: Future[String] = (Backend.friender ? addFri).mapTo[String]
+              onComplete(fResponse){
+                case Success(resp: String) => complete(resp)
+                case Failure(t) => complete("Cannot add friend: "+t)
+              }
+            }
+          }
+        }
+      }
     }
+
+
+
+
   }
 
 }

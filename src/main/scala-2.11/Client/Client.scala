@@ -24,7 +24,7 @@ import spray.httpx.SprayJsonSupport._
 
 
 
-class Client(name_p: String) extends Actor {
+class Client(name_p: String, totalBobs: Int) extends Actor {
 
   import context.dispatcher
   implicit var ActorSystem = context.system
@@ -61,15 +61,21 @@ class Client(name_p: String) extends Actor {
     }
   }
 
-  registerSelf()
-
-  val response: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"))).mapTo[HttpResponse]
-  response onComplete {
-    case Success(r) => {
-      r.entity.asString
-    }
-    case Failure(t) => println("An error has occured: " + t.getMessage)
+  def addRandomFriend() = {
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, "bob0")))
   }
+
+  registerSelf()
+  addRandomFriend()
+
+//  val response: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"))).mapTo[HttpResponse]
+//  response onComplete {
+//    case Success(r) => {
+//      r.entity.asString
+//    }
+//    case Failure(t) => println("An error has occured: " + t.getMessage)
+//  }
 
   //Testing a function call!
 //  val fPong = getPong
@@ -118,6 +124,8 @@ class Client(name_p: String) extends Actor {
     }
     return fString
   }
+
+  //def getFriendsList: Future[]
 
 
 

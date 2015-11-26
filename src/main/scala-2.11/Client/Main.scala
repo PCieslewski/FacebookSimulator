@@ -8,8 +8,8 @@ object Main{
     implicit val clientSystem = ActorSystem()
 
     // the handler actor replies to incoming HttpRequests
-    for(i <- 1 to 100) {
-      clientSystem.actorOf(Props(new Client("Bob"+i)), name = "Bob"+i)
+    for(i <- 0 to 5) {
+      clientSystem.actorOf(Props(new Client("Bob"+i,5)), name = "Bob"+i)
     }
 
   }
