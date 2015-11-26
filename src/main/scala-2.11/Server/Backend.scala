@@ -47,19 +47,33 @@ class Friender extends Actor{
     case AddFriend(requesterId: Int, requesterName: String, friendName: String) => {
       val requester: Friend = Friend(requesterId, requesterName)
       val friend: Friend = Friend(Backend.getIdFromName(friendName),friendName)
-      addFriend(requester, friend)
-      addFriend(friend, requester)
-      sender ! "Success"
+      if(requester.id < 0 || friend.id < 0){
+        sender ! "Friend not found."
+      }
+      else {
+        if(requester == friend){
+          sender ! "Cannot add self as a friend."
+        }
+        else {
+          addFriend(requester, friend)
+          addFriend(friend, requester)
+          sender ! "Friend added successfully."
+        }
+      }
     }
   }
 
   def addFriend(f1: Friend, f2: Friend){
+    println(f1.name + " adding " + f2.name)
     var fList = Backend.pages(f1.id).friendsList.friends
     if(!fList.contains(f2)){
       fList = fList :+ f2
       Backend.pages(f1.id).friendsList.friends = fList
       println(f1)
       println(Backend.pages(f1.id).friendsList.friends)
+    }
+    else{
+      println("friend already added. "+ f1.name + " already added " + f2.name)
     }
   }
 }

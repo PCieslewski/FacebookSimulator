@@ -62,6 +62,20 @@ object Router extends App with SimpleRoutingApp{
           }
         }
       }
+    }~
+    path("friend"){
+      get {
+        decompressRequest() {
+          entity(as[GetFriendsList]) { getFri =>
+            detach() {
+              val fl = Backend.pages(getFri.requesterID).friendsList.friends
+              complete{
+                FriendsListMsg(fl)
+              }
+            }
+          }
+        }
+      }
     }
 
 

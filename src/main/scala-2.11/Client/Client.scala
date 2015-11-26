@@ -56,6 +56,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     f onComplete {
       case Success(r) => {
         println("Registered. Got ID: " + r.id)
+        id = r.id
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
@@ -63,11 +64,27 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
 
   def addRandomFriend() = {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, "bob0")))
+    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, "Bob0")))
+  }
+
+  //def getFriendsList: Future[FriendsListMsg] = {
+  def getFriendsList() = {
+    val pipeline: HttpRequest => Future[FriendsListMsg] = sendReceive ~> unmarshal[FriendsListMsg]
+    val f: Future[FriendsListMsg] = pipeline(Get("http://localhost:8080/friend", new GetFriendsList(id)))
+    f onComplete {
+      case Success(r) => { println("I am " + name + ". : " + r) }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
   }
 
   registerSelf()
-  addRandomFriend()
+
+  context.system.scheduler.scheduleOnce(2 second, self, TakeAction())
+
+  context.system.scheduler.scheduleOnce(4 second) {
+    getFriendsList()
+  }
+
 
 //  val response: Future[HttpResponse] = (IO(Http) ? HttpRequest(GET, Uri("http://localhost:8080/hello"))).mapTo[HttpResponse]
 //  response onComplete {
@@ -110,10 +127,9 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
 //    case Failure(t) => println("An error has occured: " + t.getMessage)
 //  }
 
-
   def receive = {
-    case _ => {
-      println("Msg.")
+    case TakeAction() => {
+      addRandomFriend()
     }
   }
 
