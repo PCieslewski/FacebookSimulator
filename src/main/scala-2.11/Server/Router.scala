@@ -76,6 +76,20 @@ object Router extends App with SimpleRoutingApp{
           }
         }
       }
+    }~
+    path("post"){
+      post {
+        decompressRequest() {
+          entity(as[NewPost]) { newPost =>
+            detach() {
+              Backend.poster ! newPost
+              complete{
+                "Posted."
+              }
+            }
+          }
+        }
+      }
     }
 
 

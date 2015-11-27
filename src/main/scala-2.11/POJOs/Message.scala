@@ -14,3 +14,6 @@ case class RegisterResponse(id: Int) extends Message
 case class AddFriend(requesterID: Int, requesterName: String, friendName: String) extends Message
 case class GetFriendsList(requesterID: Int) extends Message
 case class FriendsListMsg(friends: List[Friend]) extends Message
+
+//FbPost messages
+case class NewPost(receiverId: Int, fbPost: FbPost) extends Message

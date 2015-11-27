@@ -6,10 +6,11 @@ object Main{
   def main(args: Array[String]) {
 
     implicit val clientSystem = ActorSystem()
+    val numClients = 5
 
     // the handler actor replies to incoming HttpRequests
-    for(i <- 0 to 5) {
-      clientSystem.actorOf(Props(new Client("Bob"+i,5)), name = "Bob"+i)
+    for(i <- 0 until numClients) {
+      clientSystem.actorOf(Props(new Client("Bob"+i,numClients)), name = "Bob"+i)
     }
 
   }

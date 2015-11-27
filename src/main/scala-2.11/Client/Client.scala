@@ -36,6 +36,9 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
   val name: String = name_p
   val baseURI = "http://localhost:8080/"
 
+  //Some numbers to track
+  var postNumber = 0
+
   def getTestMsg() = {
     val pipeline: HttpRequest => Future[TestMsg] = sendReceive ~> unmarshal[TestMsg]
     val f: Future[TestMsg] = pipeline(Get("http://localhost:8080/hello"))
@@ -64,7 +67,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
 
   def addRandomFriend() = {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, "Bob0")))
+    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, getRandomName())))
   }
 
   //def getFriendsList: Future[FriendsListMsg] = {
@@ -77,12 +80,22 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     }
   }
 
+  def postOnOwnPage() = {
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
+      new NewPost(id,FbPost("Post number " + postNumber + " from " + name + ".",name))))
+  }
+
   registerSelf()
 
   context.system.scheduler.scheduleOnce(2 second, self, TakeAction())
 
   context.system.scheduler.scheduleOnce(4 second) {
     getFriendsList()
+  }
+
+  context.system.scheduler.scheduleOnce(5 second) {
+    postOnOwnPage()
   }
 
 
@@ -139,6 +152,15 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
       case (resp: HttpResponse) => Future{resp.entity.asString}
     }
     return fString
+  }
+
+  //Generates a random name of a person that is not themselves.
+  def getRandomName(): String = {
+    var nameRand = "Bob"+RNG.getRandNum(totalBobs)
+    while(name.equals(nameRand)){
+      nameRand = "Bob"+RNG.getRandNum(totalBobs)
+    }
+    return nameRand
   }
 
   //def getFriendsList: Future[]

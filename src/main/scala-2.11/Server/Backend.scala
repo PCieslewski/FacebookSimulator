@@ -13,6 +13,7 @@ object Backend {
   var index = 0
   val registrar = backendSystem.actorOf(Props(new Registrar()), name = "Registrar")
   val friender = backendSystem.actorOf(Props(new Friender()), name = "Friender")
+  val poster = backendSystem.actorOf(Props(new Poster()), name = "Poster")
 
   def registerNewUser(name: String): Int = {
     pages += new Page(name)
@@ -37,6 +38,16 @@ class Registrar extends Actor{
     case RegisterRequest(name: String) => {
       val index = Backend.registerNewUser(name)
       sender ! RegisterResponse(index)
+    }
+  }
+}
+
+class Poster extends Actor{
+  def receive = {
+    case NewPost(receiverId: Int, fbPost: FbPost) => {
+      Backend.pages(receiverId).postsList.posts = Backend.pages(receiverId).postsList.posts :+ fbPost
+      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
+      println(Backend.pages(receiverId).postsList.posts)
     }
   }
 }
@@ -76,4 +87,6 @@ class Friender extends Actor{
       println("friend already added. "+ f1.name + " already added " + f2.name)
     }
   }
+
+
 }
