@@ -10,6 +10,8 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   //Primitives
   implicit val FriendFormat = jsonFormat2(Friend)
   implicit val FbPostFormat = jsonFormat2(FbPost)
+  implicit val PictureFormat = jsonFormat1(Picture)
+  implicit val ProfileFormat = jsonFormat4(Profile)
 
   implicit val RegisterRequestFormat = jsonFormat1(RegisterRequest)
   implicit val RegisterResponseFormat = jsonFormat1(RegisterResponse)
@@ -19,5 +21,13 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   implicit val FriendsListMsgFormat = jsonFormat1(FriendsListMsg)
 
   implicit val NewPostFormat = jsonFormat2(NewPost)
+
+  implicit val GetProfileFormat = jsonFormat1(GetProfile)
+  implicit val SetProfileFormat = jsonFormat2(SetProfile)
+
+  implicit val NewPictureFormat = jsonFormat2(NewPicture)
+
+  implicit val GetPageFormat = jsonFormat1(GetPage)
+  implicit val PageMsgFormat = jsonFormat4(PageMsg)
 
 }

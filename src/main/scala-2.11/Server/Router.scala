@@ -90,6 +90,62 @@ object Router extends App with SimpleRoutingApp{
           }
         }
       }
+    }~
+    path("profile"){
+      get {
+        decompressRequest() {
+          entity(as[GetProfile]) { getPro =>
+            detach() {
+              val id = getPro.id
+              complete(Backend.pages(id).profile)
+            }
+          }
+        }
+      }
+    }~
+    path("profile"){
+      post {
+        decompressRequest() {
+          entity(as[SetProfile]) { setPro =>
+            detach() {
+              val id = setPro.id
+              Backend.pages(id).profile = setPro.profile
+              complete("Updated profile.")
+            }
+          }
+        }
+      }
+    }~
+    path("album"){
+      post {
+        decompressRequest() {
+          entity(as[NewPicture]) { newPic =>
+            detach() {
+              val id = newPic.id
+              Backend.pages(id).album.pictures = Backend.pages(id).album.pictures :+ newPic.picture
+              complete("Added Picture.")
+            }
+          }
+        }
+      }
+    }~
+    path("page"){
+      get {
+        decompressRequest() {
+          entity(as[GetPage]) { getPage =>
+            detach() {
+              val id = getPage.id
+              val pageMsg = new PageMsg(
+                Backend.pages(id).profile,
+                Backend.pages(id).postsList.posts,
+                Backend.pages(id).album.pictures,
+                Backend.pages(id).friendsList.friends
+              )
+              complete(pageMsg)
+            }
+          }
+        }
+      }
     }
 
 
