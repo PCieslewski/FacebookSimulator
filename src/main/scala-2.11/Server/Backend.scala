@@ -46,8 +46,8 @@ class Poster extends Actor{
   def receive = {
     case NewPost(receiverId: Int, fbPost: FbPost) => {
       Backend.pages(receiverId).postsList.posts = Backend.pages(receiverId).postsList.posts :+ fbPost
-      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
-      println(Backend.pages(receiverId).postsList.posts)
+//      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
+//      println(Backend.pages(receiverId).postsList.posts)
     }
   }
 }
@@ -75,16 +75,16 @@ class Friender extends Actor{
   }
 
   def addFriend(f1: Friend, f2: Friend){
-    println(f1.name + " adding " + f2.name)
+//    println(f1.name + " adding " + f2.name)
     var fList = Backend.pages(f1.id).friendsList.friends
     if(!fList.contains(f2)){
       fList = fList :+ f2
       Backend.pages(f1.id).friendsList.friends = fList
-      println(f1)
-      println(Backend.pages(f1.id).friendsList.friends)
+//      println(f1)
+//      println(Backend.pages(f1.id).friendsList.friends)
     }
     else{
-      println("friend already added. "+ f1.name + " already added " + f2.name)
+//      println("friend already added. "+ f1.name + " already added " + f2.name)
     }
   }
 
