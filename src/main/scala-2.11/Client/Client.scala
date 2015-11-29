@@ -60,7 +60,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     val f: Future[RegisterResponse] = pipeline(Post("http://localhost:8080/register", new RegisterRequest(name)))
     f onComplete {
       case Success(r) => {
-        println("Registered. Got ID: " + r.id)
+//        println("Registered. Got ID: " + r.id)
         id = r.id
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
