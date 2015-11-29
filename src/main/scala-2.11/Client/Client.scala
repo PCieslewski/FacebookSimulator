@@ -39,6 +39,8 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
   //Some numbers to track
   var postNumber = 0
 
+  var shouldPrint: Boolean = false
+
   def getTestMsg() = {
     val pipeline: HttpRequest => Future[TestMsg] = sendReceive ~> unmarshal[TestMsg]
     val f: Future[TestMsg] = pipeline(Get("http://localhost:8080/hello"))
@@ -70,7 +72,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     val randFriendName = getRandomName()
     val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, randFriendName)))
     f onComplete {
-      case Success(r) => { println(name + ": I added " + randFriendName + " as a friend!") }
+      case Success(r) => { if(shouldPrint) println(name + ": I added " + randFriendName + " as a friend!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -85,7 +87,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     val f: Future[String] = pipeline(Post("http://localhost:8080/post",
       new NewPost(id,FbPost("Post number " + postNumber + " from " + name + ".",name))))
     f onComplete {
-      case Success(r) => { println(name + ": I posted on my own wall!") }
+      case Success(r) => { if(shouldPrint) println(name + ": I posted on my own wall!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
     postNumber = postNumber + 1
@@ -106,8 +108,9 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
         val f: Future[String] = pipeline(Post("http://localhost:8080/post",
           new NewPost(randFriendID,FbPost("Post number " + postNumber + " from " + name + ".",name))))
         postNumber = postNumber + 1
-        println(name + ": I posted on " + randFriendName + "'s wall.")
-
+        if(shouldPrint) {
+          println(name + ": I posted on " + randFriendName + "'s wall.")
+        }
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
@@ -122,7 +125,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
     val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, newPro)))
     f onComplete {
-      case Success(r) => { println(name + ": Updated my profile!") }
+      case Success(r) => { if(shouldPrint) println(name + ": Updated my profile!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -134,7 +137,7 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
     val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, newPicture)))
     f onComplete {
-      case Success(r) => { println(name + ": Posted a new picture in my album!") }
+      case Success(r) => { if(shouldPrint) println(name + ": Posted a new picture in my album!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -156,9 +159,11 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
           val f: Future[PageMsg] = pipeline(Get("http://localhost:8080/page", GetPage(randFriendID)))
           f onComplete {
             case Success(pageMsg) => {
-              println(name + ": Reading " + randFriendName + "'s page.")
-              if (pageMsg.fbPosts.nonEmpty) {
-                println("Their most recent post was -- " + pageMsg.fbPosts.last)
+              if(shouldPrint) {
+                println(name + ": Reading " + randFriendName + "'s page.")
+                if (pageMsg.fbPosts.nonEmpty) {
+                  println("Their most recent post was -- " + pageMsg.fbPosts.last)
+                }
               }
             }
             case Failure(t) => println("An error has occured: " + t.getMessage)
@@ -211,6 +216,9 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
   def receive = {
     case TakeAction() => {
       takeAction()
+    }
+    case "Toggle" => {
+      shouldPrint = !shouldPrint
     }
   }
 
