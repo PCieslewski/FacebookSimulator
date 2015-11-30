@@ -24,7 +24,7 @@ import spray.httpx.SprayJsonSupport._
 
 
 
-class Client(name_p: String, totalBobs: Int) extends Actor {
+class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   import context.dispatcher
   implicit var ActorSystem = context.system
@@ -191,25 +191,28 @@ class Client(name_p: String, totalBobs: Int) extends Actor {
 
 
 
-  registerSelf()
+  //registerSelf()
+  context.system.scheduler.scheduleOnce(delayMillis millisecond) {
+    registerSelf()
+  }
 
-  context.system.scheduler.scheduleOnce(1 second) {
+  context.system.scheduler.scheduleOnce((2000+delayMillis) millisecond) {
     postOnOwnPage()
   }
 
-  context.system.scheduler.scheduleOnce(2 second) {
+  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
     updateProfile()
   }
 
-  context.system.scheduler.scheduleOnce(3 second) {
+  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
     addRandomFriend()
   }
 
-  context.system.scheduler.scheduleOnce(4 second) {
+  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
     readRandomFriendPage()
   }
 
-  context.system.scheduler.scheduleOnce(5 second) {
+  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
     self ! new TakeAction()
   }
 

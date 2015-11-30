@@ -8,7 +8,8 @@ object Main{
   def main(args: Array[String]) {
 
     implicit val clientSystem = ActorSystem()
-    var numClients = 1000
+    var numClients = 500
+    var delayMillis = 0
 
     if(!args.isEmpty){
       numClients = args(0).toInt
@@ -19,8 +20,9 @@ object Main{
 
     // the handler actor replies to incoming HttpRequests
     for (i <- 0 until numClients) {
-      val s = clientSystem.actorOf(Props(new Client("Bob" + i, numClients)), name = "Bob" + i) //make an array
+      val s = clientSystem.actorOf(Props(new Client("Bob" + i, numClients, delayMillis)), name = "Bob" + i) //make an array
       actors += s
+      delayMillis = delayMillis + 1
     }
 
     println("Number of clients simulated: " + numClients)
