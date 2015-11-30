@@ -11,6 +11,8 @@ In order to build and run the project type the following commands in this order:
 On first terminal:
     sbt "run-main Server.Router"
 
+    (Note: Please ensure that the server is running before running the clients.)
+
 On second terminal:
     sbt "run-main Client.Main numClients"
 
