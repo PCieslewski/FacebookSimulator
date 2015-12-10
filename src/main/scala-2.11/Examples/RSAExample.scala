@@ -1,15 +1,8 @@
 package Examples
 
-import java.io._
 import java.security._
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import javax.crypto._
-import javax.crypto.spec.SecretKeySpec
 import Examples.crypto.{rsa, aes}
-
-import scala.collection.immutable.Stream
-import scala.Function.const
 
 object RSAExample {
 
@@ -41,6 +34,12 @@ object RSAExample {
     println(new String(testEncryptedRSA))
     val testDecryptedRSA = rsa.decrypt(privKey,testEncryptedRSA)
     println(new String(testDecryptedRSA))
+    println("--------------------\n")
+
+    //Testing RSA Signature
+    val name = "Bob453"
+    val sig = rsa.sign(privKey,name.getBytes())
+    println(rsa.verify(pubKey,sig,name.getBytes()))
 
   }
 
@@ -103,8 +102,6 @@ object crypto {
       generator.generateKey
     }
 
-    def decodeSecretKey(encodedKey: Array[Byte]): SecretKey =
-      new SecretKeySpec(encodedKey, "AES")
   }
 
 }
