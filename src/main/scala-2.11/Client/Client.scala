@@ -21,6 +21,8 @@ import scala.concurrent.duration._
 import spray.client.pipelining._
 import spray.httpx.SprayJsonSupport._
 
+import POJOs.crypto._
+
 
 
 
@@ -35,6 +37,12 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   var id: Int = 0
   val name: String = name_p
   val baseURI = "http://localhost:8080/"
+  var session = Array.empty[Byte]
+  val keypair = rsa.generateKeyPair()
+  val publicKey = keypair.getPublic
+  val privateKey = keypair.getPrivate
+  val aeskey = aes.generateSecretKey
+
 
   //Some numbers to track
   var postNumber = 0
@@ -57,7 +65,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   def registerSelf() = {
     val pipeline: HttpRequest => Future[RegisterResponse] = sendReceive ~> unmarshal[RegisterResponse]
-    val f: Future[RegisterResponse] = pipeline(Post("http://localhost:8080/register", new RegisterRequest(name)))
+    val f: Future[RegisterResponse] = pipeline(Post("http://localhost:8080/register", new RegisterRequest(name, publicKey.getEncoded)))
     f onComplete {
       case Success(r) => {
 //        println("Registered. Got ID: " + r.id)
@@ -65,6 +73,35 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
+  }
+
+  def login() = {
+    val pipeline: HttpRequest => Future[ChallengeResponse] = sendReceive ~> unmarshal[ChallengeResponse]
+    val challRespFut: Future[ChallengeResponse] = pipeline(Post("http://localhost:8080/login", new LoginRequest(id)))
+
+    val futLoginResp: Future[LoginResponse] = getFutureLoginResponse(challRespFut)
+    futLoginResp onComplete {
+      case Success(loginResp) => {
+        if(loginResp.success == 1) {
+          session = loginResp.sessionToken
+        }
+      }
+    }
+
+  }
+
+  def getFutureLoginResponse(challRespFut: Future[ChallengeResponse]): Future[LoginResponse] = {
+    val futLoginResp: Future[LoginResponse] = challRespFut.flatMap{
+      case ChallengeResponse(challenge: Array[Byte]) => {
+        val signedChallenge = rsa.sign(privateKey,challenge)
+        val pipeline: HttpRequest => Future[LoginResponse] = sendReceive ~> unmarshal[LoginResponse]
+        pipeline(Post("http://localhost:8080/login2", new SignedChallenge(id, signedChallenge)))
+      }
+    }
+    return futLoginResp
+//    val fString: Future[String] = fResponse.flatMap{
+//      case (resp: HttpResponse) => Future{resp.entity.asString}
+//    }
   }
 
   def addRandomFriend() = {
@@ -197,24 +234,24 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   context.system.scheduler.scheduleOnce((2000+delayMillis) millisecond) {
-    postOnOwnPage()
+    login()
   }
 
-  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
-    updateProfile()
-  }
-
-  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
-    addRandomFriend()
-  }
-
-  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
-    readRandomFriendPage()
-  }
-
-  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
-    self ! new TakeAction()
-  }
+//  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
+//    updateProfile()
+//  }
+//
+//  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
+//    addRandomFriend()
+//  }
+//
+//  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
+//    readRandomFriendPage()
+//  }
+//
+//  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+//    self ! new TakeAction()
+//  }
 
   def receive = {
     case TakeAction() => {

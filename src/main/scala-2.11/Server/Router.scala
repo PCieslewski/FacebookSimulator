@@ -48,6 +48,43 @@ object Router extends App with SimpleRoutingApp{
         }
       }
     }~
+    path("login"){
+      post {
+        println("Got here")
+        decompressRequest() {
+          entity(as[LoginRequest]) { loginReq =>
+            detach() {
+              println("SENDING CHALLENGE")
+              val f: Future[ChallengeResponse] = (Backend.loginActor ? loginReq).mapTo[ChallengeResponse]
+              onComplete(f){
+                case Success(challengeResp: ChallengeResponse) => complete(challengeResp)
+                case Failure(t) => complete("Cannot get challenge: "+t)
+              }
+            }
+          }
+        }
+      }
+    }~
+    path("login2"){
+      post {
+        println("Got here")
+        decompressRequest() {
+          entity(as[SignedChallenge]) { signedChallenge =>
+            detach() {
+              println("VERIFYING CHALLENGE")
+              val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
+              onComplete(f) {
+                case Success(loginResp: LoginResponse) => {
+                  println(new String(loginResp.sessionToken))
+                  complete(loginResp)
+                }
+                case Failure(t) => complete("Failed Login Procedure. : " + t)
+              }
+            }
+          }
+        }
+      }
+    }~
     path("friend"){
       post {
         decompressRequest() {

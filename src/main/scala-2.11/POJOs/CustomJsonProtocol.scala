@@ -13,8 +13,15 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   implicit val PictureFormat = jsonFormat1(Picture)
   implicit val ProfileFormat = jsonFormat4(Profile)
 
-  implicit val RegisterRequestFormat = jsonFormat1(RegisterRequest)
+  implicit val RegisterRequestFormat = jsonFormat2(RegisterRequest)
   implicit val RegisterResponseFormat = jsonFormat1(RegisterResponse)
+
+  //Login messages
+  implicit val LoginRequestFormat = jsonFormat1(LoginRequest)
+  implicit val ChallengeResponseFormat = jsonFormat1(ChallengeResponse)
+  implicit val SignedChallengeFormat = jsonFormat2(SignedChallenge)
+  implicit val LoginResponseFormat = jsonFormat2(LoginResponse)
+
 
   implicit val AddFriendFormat = jsonFormat3(AddFriend)
   implicit val GetFriendsListFormat = jsonFormat1(GetFriendsList)

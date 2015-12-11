@@ -7,8 +7,14 @@ case class TestMsg(a: Int, b: String) extends Message
 case class TakeAction() extends Message
 
 //Messages used to register a client to the server.
-case class RegisterRequest(name: String) extends Message
+case class RegisterRequest(name: String, publicKeyEncoded: Array[Byte]) extends Message
 case class RegisterResponse(id: Int) extends Message
+
+//Messages for logging in and getting a session token
+case class LoginRequest(id: Int) extends Message
+case class ChallengeResponse(challenge: Array[Byte]) extends Message
+case class SignedChallenge(id: Int, signedChallenge: Array[Byte]) extends Message
+case class LoginResponse(sessionToken: Array[Byte], success: Int) extends Message
 
 //Friend messages
 case class AddFriend(requesterID: Int, requesterName: String, friendName: String) extends Message

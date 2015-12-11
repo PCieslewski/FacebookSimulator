@@ -8,7 +8,7 @@ object Main{
   def main(args: Array[String]) {
 
     implicit val clientSystem = ActorSystem()
-    var numClients = 500
+    var numClients = 2
     var delayMillis = 0
 
     if(!args.isEmpty){

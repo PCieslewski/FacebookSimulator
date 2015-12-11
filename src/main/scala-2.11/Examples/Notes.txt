@@ -1,0 +1,2 @@
+Amazing website for crypto in scala.
+https://github.com/HAW-AI/ITS-2012-WS-A3-BRTT/blob/master/crypto.scala

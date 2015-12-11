@@ -1,8 +1,7 @@
 package Examples
 
 import java.security._
-import javax.crypto._
-import Examples.crypto.{rsa, aes}
+import POJOs.crypto._
 
 object RSAExample {
 
@@ -40,67 +39,12 @@ object RSAExample {
     val name = "Bob453"
     val sig = rsa.sign(privKey,name.getBytes())
     println(rsa.verify(pubKey,sig,name.getBytes()))
+    println("--------------------\n")
 
-  }
-
-}
-
-object crypto {
-
-  object rsa {
-
-    def encrypt(key: PublicKey, data: Array[Byte]): Array[Byte] = {
-      val cipher = Cipher.getInstance("RSA")
-      cipher.init(Cipher.ENCRYPT_MODE, key)
-      cipher.doFinal(data)
-    }
-
-    def decrypt(key: PrivateKey, data: Array[Byte]): Array[Byte] = {
-      val cipher = Cipher.getInstance("RSA")
-      cipher.init(Cipher.DECRYPT_MODE, key)
-      cipher.doFinal(data)
-    }
-
-    def sign(key: PrivateKey, data: Array[Byte]): Array[Byte] = {
-      val signer = Signature.getInstance("SHA1withRSA")
-      signer.initSign(key)
-      signer.update(data)
-      signer.sign
-    }
-
-    def verify(key: PublicKey, signature: Array[Byte], data: Array[Byte]): Boolean = {
-      val verifier = Signature.getInstance("SHA1withRSA")
-      verifier.initVerify(key)
-      verifier.update(data)
-      verifier.verify(signature)
-    }
-
-    def generateKeyPair(): KeyPair = {
-      val keyGen = KeyPairGenerator.getInstance("RSA")
-      keyGen.initialize(512, new SecureRandom())
-      keyGen.generateKeyPair()
-    }
-
-  }
-
-  object aes {
-    def encrypt(key: SecretKey, data: Array[Byte]): Array[Byte] = {
-      val cipher = Cipher.getInstance("AES")
-      cipher.init(Cipher.ENCRYPT_MODE, key)
-      cipher.doFinal(data)
-    }
-
-    def decrypt(key: SecretKey, data: Array[Byte]): Array[Byte] = {
-      val cipher = Cipher.getInstance("AES")
-      cipher.init(Cipher.DECRYPT_MODE, key)
-      cipher.doFinal(data)
-    }
-
-    def generateSecretKey: SecretKey = {
-      val generator = KeyGenerator.getInstance("AES")
-      generator.init(128)
-      generator.generateKey
-    }
+    //Test encrypting key, then decrypting and using it.
+    val encryptedAESKey = rsa.encrypt(pubKey, aeskey.getEncoded)
+    val decryptedAESKey = aes.decodeSecretKey(rsa.decrypt(privKey, encryptedAESKey))
+    println(new String(aes.decrypt(decryptedAESKey, testEncrypted)))
 
   }
 
