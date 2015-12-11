@@ -52,6 +52,21 @@ object Router extends App with SimpleRoutingApp{
       post {
         println("Got here")
         decompressRequest() {
+          jsonpWithParameter("signedChallenge") {
+            entity(as[SignedChallenge]) { signedChallenge =>
+              detach() {
+                println("VERIFYING CHALLENGE")
+                val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
+                onComplete(f) {
+                  case Success(loginResp: LoginResponse) => {
+                    println(new String(loginResp.sessionToken))
+                    complete(loginResp)
+                  }
+                  case Failure(t) => complete("Failed Login Procedure. : " + t)
+                }
+              }
+            }
+          }~
           entity(as[LoginRequest]) { loginReq =>
             detach() {
               println("SENDING CHALLENGE")
@@ -65,26 +80,26 @@ object Router extends App with SimpleRoutingApp{
         }
       }
     }~
-    path("login2"){
-      post {
-        println("Got here")
-        decompressRequest() {
-          entity(as[SignedChallenge]) { signedChallenge =>
-            detach() {
-              println("VERIFYING CHALLENGE")
-              val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
-              onComplete(f) {
-                case Success(loginResp: LoginResponse) => {
-                  println(new String(loginResp.sessionToken))
-                  complete(loginResp)
-                }
-                case Failure(t) => complete("Failed Login Procedure. : " + t)
-              }
-            }
-          }
-        }
-      }
-    }~
+//    path("login2"){
+//      post {
+//        println("Got here")
+//        decompressRequest() {
+//          entity(as[SignedChallenge]) { signedChallenge =>
+//            detach() {
+//              println("VERIFYING CHALLENGE")
+//              val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
+//              onComplete(f) {
+//                case Success(loginResp: LoginResponse) => {
+//                  println(new String(loginResp.sessionToken))
+//                  complete(loginResp)
+//                }
+//                case Failure(t) => complete("Failed Login Procedure. : " + t)
+//              }
+//            }
+//          }
+//        }
+//      }
+//    }~
     path("friend"){
       post {
         decompressRequest() {

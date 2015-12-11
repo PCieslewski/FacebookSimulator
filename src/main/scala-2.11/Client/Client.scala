@@ -83,6 +83,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     futLoginResp onComplete {
       case Success(loginResp) => {
         if(loginResp.success == 1) {
+          println(name + ": I logged in successfully!")
           session = loginResp.sessionToken
         }
       }
@@ -95,7 +96,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       case ChallengeResponse(challenge: Array[Byte]) => {
         val signedChallenge = rsa.sign(privateKey,challenge)
         val pipeline: HttpRequest => Future[LoginResponse] = sendReceive ~> unmarshal[LoginResponse]
-        pipeline(Post("http://localhost:8080/login2", new SignedChallenge(id, signedChallenge)))
+        pipeline(Post("http://localhost:8080/login", new SignedChallenge(id, signedChallenge)))
       }
     }
     return futLoginResp
