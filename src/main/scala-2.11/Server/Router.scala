@@ -80,32 +80,32 @@ object Router extends App with SimpleRoutingApp{
         }
       }
     }~
-//    path("login2"){
-//      post {
-//        println("Got here")
-//        decompressRequest() {
-//          entity(as[SignedChallenge]) { signedChallenge =>
-//            detach() {
-//              println("VERIFYING CHALLENGE")
-//              val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
-//              onComplete(f) {
-//                case Success(loginResp: LoginResponse) => {
-//                  println(new String(loginResp.sessionToken))
-//                  complete(loginResp)
-//                }
-//                case Failure(t) => complete("Failed Login Procedure. : " + t)
-//              }
-//            }
-//          }
-//        }
-//      }
-//    }~
-    path("friend"){
+    path("key"){
+      get {
+        decompressRequest() {
+          entity(as[GetPublicKey]) { getPubKey =>
+            detach() {
+              val loggedIn = Backend.verifySession(getPubKey.id, getPubKey.session)
+              if(loggedIn){
+                val id = Backend.getIdFromName(getPubKey.name)
+                val pubKey = Backend.pages(id).publicKeyEncoded
+                complete(PublicKeyMsg(id, pubKey))
+              }
+              else{
+                println("A user failed session verification in GetPublicKey.")
+                complete("Not logged in.")
+              }
+            }
+          }
+        }
+      }
+    }~
+    path("addPendingFriend"){
       post {
         decompressRequest() {
-          entity(as[AddFriend]) { addFri =>
+          entity(as[AddPendingFriend]) { addPendFriend =>
             detach() {
-              val fResponse: Future[String] = (Backend.friender ? addFri).mapTo[String]
+              val fResponse: Future[String] = (Backend.friender ? addPendFriend).mapTo[String]
               onComplete(fResponse){
                 case Success(resp: String) => complete(resp)
                 case Failure(t) => complete("Cannot add friend: "+t)
@@ -120,9 +120,55 @@ object Router extends App with SimpleRoutingApp{
         decompressRequest() {
           entity(as[GetFriendsList]) { getFri =>
             detach() {
-              val fl = Backend.pages(getFri.requesterID).friendsList.friends
-              complete{
-                FriendsListMsg(fl)
+              val loggedIn = Backend.verifySession(getFri.id, getFri.session)
+              if (loggedIn) {
+                val fl = Backend.pages(getFri.id).friendsList.friends
+                complete(FriendsListMsg(fl))
+              }
+              else {
+                println("A user failed session verification in GetFriendsList.")
+                complete("Not logged in.")
+              }
+            }
+          }
+        }
+      }
+    }~
+    path("pendingFriend"){
+      get {
+        decompressRequest() {
+          entity(as[GetPendingFriendsList]) { getPendFri =>
+            detach() {
+              val loggedIn = Backend.verifySession(getPendFri.id, getPendFri.session)
+              if (loggedIn) {
+                val pfl = Backend.pages(getPendFri.id).pendingFriendsList.pendingFriends
+                complete(PendingFriendsListMsg(pfl))
+              }
+              else {
+                println("A user failed session verification in GetPendingFriendsList.")
+                complete("Not logged in.")
+              }
+            }
+          }
+        }
+      }
+    }~
+    path("acceptFriends"){
+      post {
+        decompressRequest() {
+          entity(as[AcceptFriends]) { accFri =>
+            detach() {
+              val loggedIn = Backend.verifySession(accFri.id, accFri.session)
+              if (loggedIn) {
+                val fResponse: Future[String] = (Backend.friender ? accFri).mapTo[String]
+                onComplete(fResponse){
+                  case Success(resp: String) => complete(resp)
+                  case Failure(t) => complete("Cannot add friend: "+t)
+                }
+              }
+              else {
+                println("A user failed session verification in AcceptFriends.")
+                complete("Not logged in.")
               }
             }
           }

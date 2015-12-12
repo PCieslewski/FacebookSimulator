@@ -14,6 +14,7 @@ import spray.http.HttpMethods._
 import spray.http.{HttpHeader, Uri, HttpRequest, HttpResponse}
 import spray.json.JsObject
 
+import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
@@ -63,6 +64,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   }
 
+  //Client function to register itself with the server.
   def registerSelf() = {
     val pipeline: HttpRequest => Future[RegisterResponse] = sendReceive ~> unmarshal[RegisterResponse]
     val f: Future[RegisterResponse] = pipeline(Post("http://localhost:8080/register", new RegisterRequest(name, publicKey.getEncoded)))
@@ -75,6 +77,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     }
   }
 
+  //Client function for logging into the server.
   def login() = {
     val pipeline: HttpRequest => Future[ChallengeResponse] = sendReceive ~> unmarshal[ChallengeResponse]
     val challRespFut: Future[ChallengeResponse] = pipeline(Post("http://localhost:8080/login", new LoginRequest(id)))
@@ -91,6 +94,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   }
 
+  //Helper function for login
   def getFutureLoginResponse(challRespFut: Future[ChallengeResponse]): Future[LoginResponse] = {
     val futLoginResp: Future[LoginResponse] = challRespFut.flatMap{
       case ChallengeResponse(challenge: Array[Byte]) => {
@@ -100,118 +104,193 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       }
     }
     return futLoginResp
-//    val fString: Future[String] = fResponse.flatMap{
-//      case (resp: HttpResponse) => Future{resp.entity.asString}
-//    }
   }
 
+  //Adds a random friend
   def addRandomFriend() = {
-    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val randFriendName = getRandomName()
-    val f: Future[String] = pipeline(Post("http://localhost:8080/friend", new AddFriend(id, name, randFriendName)))
-    f onComplete {
-      case Success(r) => { if(shouldPrint) println(name + ": I added " + randFriendName + " as a friend!") }
+    val randFriendName = "Bob0"
+
+    val futPubKeyMsg = getPublicKeyOf(randFriendName)
+    val f = futPubKeyMsg flatMap(pubKeyMsg => addSelfToPendingOfFriend(pubKeyMsg))
+    f onComplete{
+      case Success(r) => { println("Added a random friend!" + r) }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
+
+  }
+
+  //Helper function for adding a friend
+  def getPublicKeyOf(nameOfFriend: String): Future[PublicKeyMsg] = {
+    println("GETTING A PUB KEY")
+    val pipeline: HttpRequest => Future[PublicKeyMsg] = sendReceive ~> unmarshal[PublicKeyMsg]
+    pipeline(Get("http://localhost:8080/key", new GetPublicKey(id, session, nameOfFriend)))
+  }
+
+  //Helper function for adding a friend.
+  def addSelfToPendingOfFriend(pubKeyMsg: PublicKeyMsg): Future[String] = {
+
+    println("ADDING SELF TO FRIEND")
+    val aesKeyEncrypted = rsa.encrypt(publicKey, aeskey.getEncoded)
+    val selfCard = Friend(id,name,publicKey.getEncoded,aesKeyEncrypted)
+    val friendId = pubKeyMsg.id
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    pipeline(Post("http://localhost:8080/addPendingFriend", new AddPendingFriend(id, session, friendId, selfCard)))
+
+  }
+
+  def printPendingFriendList() = {
+    val futPendingFriendList = getPendingFriendsList()
+    futPendingFriendList onComplete{
+      case Success(pfl) => { println(name + " :: " + pfl.pendingFriends) }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+  }
+
+  def getPendingFriendsList(): Future[PendingFriendsListMsg] = {
+    val pipeline: HttpRequest => Future[PendingFriendsListMsg] = sendReceive ~> unmarshal[PendingFriendsListMsg]
+    pipeline(Get("http://localhost:8080/pendingFriend", new GetPendingFriendsList(id, session)))
   }
 
   def getFriendsList(): Future[FriendsListMsg] = {
     val pipeline: HttpRequest => Future[FriendsListMsg] = sendReceive ~> unmarshal[FriendsListMsg]
-    return pipeline(Get("http://localhost:8080/friend", new GetFriendsList(id)))
+    pipeline(Get("http://localhost:8080/friend", new GetFriendsList(id, session)))
   }
 
-  def postOnOwnPage() = {
-    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
-      new NewPost(id,FbPost("Post number " + postNumber + " from " + name + ".",name))))
-    f onComplete {
-      case Success(r) => { if(shouldPrint) println(name + ": I posted on my own wall!") }
+  def printFriendList() = {
+    val futFriendList = getFriendsList()
+    futFriendList onComplete{
+      case Success(fl) => { println(name + " :: " + fl.friends) }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
-    postNumber = postNumber + 1
+  }
+
+  def sendAcceptanceOfPendingFriends(pendingFriendsListMsg: PendingFriendsListMsg): Future[String] = {
+    val pfl = pendingFriendsListMsg.pendingFriends
+    var nameCardList: List[Friend] = List()
+
+    for(i <- pfl.indices){
+      val friendPubKey = rsa.decodePublicKey(pfl(i).publicKeyEncoded)
+      val aesKeyEncrypted = rsa.encrypt(friendPubKey, aeskey.getEncoded)
+      nameCardList = nameCardList :+ Friend(id, name, publicKey.getEncoded, aesKeyEncrypted)
+    }
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    pipeline(Post("http://localhost:8080/acceptFriends", new AcceptFriends(id, session, pfl, nameCardList)))
+  }
+
+  def acceptFriends() = {
+
+    val futPflMsg = getPendingFriendsList()
+    val f = futPflMsg flatMap(pflMsg => sendAcceptanceOfPendingFriends(pflMsg))
+    f onComplete{
+      case Success(r) => { println("Accepted Friends!" + r) }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+
+  }
+
+//  def acceptFriends() = {
+//
+//    val futPflMsg = getPendingFriendsList()
+//    val
+//
+//  }
+
+
+
+  def postOnOwnPage() = {
+//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+//    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
+//      new NewPost(id,FbPost("Post number " + postNumber + " from " + name + ".",name))))
+//    f onComplete {
+//      case Success(r) => { if(shouldPrint) println(name + ": I posted on my own wall!") }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
+//    postNumber = postNumber + 1
   }
 
   //Posts on a random friends page.
   def postOnRandomFriendPage() = {
-    val fl: Future[FriendsListMsg] = getFriendsList()
-    fl onComplete {
-      case Success(flmsg) => {
-
-        val friends = flmsg.friends
-        val randFriend = friends(RNG.getRandNum(friends.length))
-        val randFriendID = randFriend.id
-        val randFriendName = randFriend.name
-
-        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-        val f: Future[String] = pipeline(Post("http://localhost:8080/post",
-          new NewPost(randFriendID,FbPost("Post number " + postNumber + " from " + name + ".",name))))
-        postNumber = postNumber + 1
-        if(shouldPrint) {
-          println(name + ": I posted on " + randFriendName + "'s wall.")
-        }
-      }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
-    }
+//    val fl: Future[FriendsListMsg] = getFriendsList()
+//    fl onComplete {
+//      case Success(flmsg) => {
+//
+//        val friends = flmsg.friends
+//        val randFriend = friends(RNG.getRandNum(friends.length))
+//        val randFriendID = randFriend.id
+//        val randFriendName = randFriend.name
+//
+//        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+//        val f: Future[String] = pipeline(Post("http://localhost:8080/post",
+//          new NewPost(randFriendID,FbPost("Post number " + postNumber + " from " + name + ".",name))))
+//        postNumber = postNumber + 1
+//        if(shouldPrint) {
+//          println(name + ": I posted on " + randFriendName + "'s wall.")
+//        }
+//      }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
   }
 
   def updateProfile() = {
-    val birthday = "11/12/1992"
-    val relationship = "In a Relationship"
-    val pic = new Picture(Array.fill[Byte](1024)(1))
-    val newPro: Profile = new Profile(name, birthday, pic, relationship)
-
-    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, newPro)))
-    f onComplete {
-      case Success(r) => { if(shouldPrint) println(name + ": Updated my profile!") }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
-    }
+//    val birthday = "11/12/1992"
+//    val relationship = "In a Relationship"
+//    val pic = new Picture(Array.fill[Byte](1024)(1))
+//    val newPro: Profile = new Profile(name, birthday, pic, relationship)
+//
+//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+//    val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, newPro)))
+//    f onComplete {
+//      case Success(r) => { if(shouldPrint) println(name + ": Updated my profile!") }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
   }
 
   def postPicture() = {
 
-    val newPicture = new Picture(Array.fill[Byte](1024)(2))
-
-    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-    val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, newPicture)))
-    f onComplete {
-      case Success(r) => { if(shouldPrint) println(name + ": Posted a new picture in my album!") }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
-    }
+//    val newPicture = new Picture(Array.fill[Byte](1024)(2))
+//
+//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+//    val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, newPicture)))
+//    f onComplete {
+//      case Success(r) => { if(shouldPrint) println(name + ": Posted a new picture in my album!") }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
   }
 
   def readRandomFriendPage() = {
-    val fl: Future[FriendsListMsg] = getFriendsList()
-    fl onComplete {
-      case Success(flmsg) => {
-
-        val friends = flmsg.friends
-
-        if(friends.nonEmpty) {
-
-          val randFriend = friends(RNG.getRandNum(friends.length))
-          val randFriendID = randFriend.id
-          val randFriendName = randFriend.name
-
-          val pipeline: HttpRequest => Future[PageMsg] = sendReceive ~> unmarshal[PageMsg]
-          val f: Future[PageMsg] = pipeline(Get("http://localhost:8080/page", GetPage(randFriendID)))
-          f onComplete {
-            case Success(pageMsg) => {
-              if(shouldPrint) {
-                println(name + ": Reading " + randFriendName + "'s page.")
-                if (pageMsg.fbPosts.nonEmpty) {
-                  println("Their most recent post was -- " + pageMsg.fbPosts.last)
-                }
-              }
-            }
-            case Failure(t) => println("An error has occured: " + t.getMessage)
-          }
-
-        }
-
-      }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
-    }
+//    val fl: Future[FriendsListMsg] = getFriendsList()
+//    fl onComplete {
+//      case Success(flmsg) => {
+//
+//        val friends = flmsg.friends
+//
+//        if(friends.nonEmpty) {
+//
+//          val randFriend = friends(RNG.getRandNum(friends.length))
+//          val randFriendID = randFriend.id
+//          val randFriendName = randFriend.name
+//
+//          val pipeline: HttpRequest => Future[PageMsg] = sendReceive ~> unmarshal[PageMsg]
+//          val f: Future[PageMsg] = pipeline(Get("http://localhost:8080/page", GetPage(randFriendID)))
+//          f onComplete {
+//            case Success(pageMsg) => {
+//              if(shouldPrint) {
+//                println(name + ": Reading " + randFriendName + "'s page.")
+//                if (pageMsg.fbPosts.nonEmpty) {
+//                  println("Their most recent post was -- " + pageMsg.fbPosts.last)
+//                }
+//              }
+//            }
+//            case Failure(t) => println("An error has occured: " + t.getMessage)
+//          }
+//
+//        }
+//
+//      }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
   }
 
   def takeAction() = {
@@ -238,17 +317,21 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     login()
   }
 
-//  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
-//    updateProfile()
-//  }
-//
-//  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
-//    addRandomFriend()
-//  }
-//
-//  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
-//    readRandomFriendPage()
-//  }
+  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
+    addRandomFriend()
+  }
+
+  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
+    printPendingFriendList()
+  }
+
+  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
+    acceptFriends()
+  }
+
+  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+    printFriendList()
+  }
 //
 //  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
 //    self ! new TakeAction()

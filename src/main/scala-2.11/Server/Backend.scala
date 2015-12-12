@@ -7,6 +7,7 @@ import POJOs.crypto.rsa
 import akka.actor._
 
 import scala.collection.mutable
+import scala.collection.mutable._
 
 object Backend {
 
@@ -20,23 +21,36 @@ object Backend {
   val friender = backendSystem.actorOf(Props(new Friender()), name = "Friender")
   val poster = backendSystem.actorOf(Props(new Poster()), name = "Poster")
   val loginActor = backendSystem.actorOf(Props(new LoginActor()), name = "LoginActor")
+  val nameIdMap: Map[String,Int] = Map()
 
   def registerNewUser(name: String, encodedPublicKey: Array[Byte]): Int = {
     pages += new Page(name, encodedPublicKey)
     sessions += Array.empty[Byte]
     challenges += Array.empty[Byte]
 
+    nameIdMap += (name -> index)
+
     index = index + 1
     return index - 1
   }
 
   def getIdFromName(name: String): Int = {
-    for(i <- pages.indices){
-      if(pages(i).profile.name.equals(name)){
-        return i
-      }
+//    for(i <- pages.indices){
+//      if(pages(i).profile.name.equals(name)){
+//        return i
+//      }
+//    }
+//    return -1
+    return nameIdMap.getOrElse(name, -1)
+  }
+
+  def verifySession(id: Int, session: Array[Byte]): Boolean = {
+    if(sessions(id).sameElements(session)){
+      return true
     }
-    return -1
+    else{
+      return false
+    }
   }
 
 }
@@ -61,42 +75,68 @@ class Poster extends Actor{
   }
 }
 
-//Actor who friends 2 people together and updats the data structures.
 class Friender extends Actor{
   def receive = {
-    case AddFriend(requesterId: Int, requesterName: String, friendName: String) => {
-      val requester: Friend = Friend(requesterId, requesterName)
-      val friend: Friend = Friend(Backend.getIdFromName(friendName),friendName)
-      if(requester.id < 0 || friend.id < 0){
-        sender ! "Friend not found."
+
+    case AddPendingFriend(id: Int, session: Array[Byte], friendId: Int, self: Friend) => {
+      if(isValidFriend(friendId, self)){
+        val pfl = Backend.pages(friendId).pendingFriendsList.pendingFriends :+ self
+        Backend.pages(friendId).pendingFriendsList.pendingFriends = pfl
+        sender ! "Server : Added pending friend successfully!"
       }
-      else {
-        if(requester == friend){
-          sender ! "Cannot add self as a friend."
-        }
-        else {
-          addFriend(requester, friend)
-          addFriend(friend, requester)
-          sender ! "Friend added successfully."
-        }
+      else{
+        sender ! "Cannot add pending friend."
       }
     }
+
+    case AcceptFriends(id: Int, session: Array[Byte], newFriends: List[Friend], selfCards: List[Friend]) => {
+
+      //Add all of the friends that have been deemed accepted
+      var fl = Backend.pages(id).friendsList.friends
+      fl = fl ::: newFriends
+      Backend.pages(id).friendsList.friends = fl
+
+      //Add your friend card to all the friends you just added.
+      for (i <- newFriends.indices){
+        fl = Backend.pages(newFriends(i).id).friendsList.friends
+        fl = fl :+ selfCards(i)
+        Backend.pages(newFriends(i).id).friendsList.friends = fl
+      }
+
+      //Clear your pending friends list
+      Backend.pages(id).pendingFriendsList.pendingFriends = List()
+
+      sender ! "Accepted friends from pending friends."
+
+    }
+
   }
 
-  def addFriend(f1: Friend, f2: Friend){
-//    println(f1.name + " adding " + f2.name)
-    var fList = Backend.pages(f1.id).friendsList.friends
-    if(!fList.contains(f2)){
-      fList = fList :+ f2
-      Backend.pages(f1.id).friendsList.friends = fList
-//      println(f1)
-//      println(Backend.pages(f1.id).friendsList.friends)
-    }
-    else{
-//      println("friend already added. "+ f1.name + " already added " + f2.name)
-    }
-  }
+  //This helper method checks to see when adding yourself to another persons pending friends list,
+  //that you are a valid person to add.
+  //Things to avoid: Adding self to self, adding self to people who youre already friends with.
+  def isValidFriend(friendId: Int, selfFriend: Friend): Boolean = {
 
+    //Check to see if self is trying to add self
+    if(friendId == selfFriend.id){
+      return false
+    }
+
+    //Check to see that the friend already doesnt have you as a real friend.
+    val fl = Backend.pages(friendId).friendsList.friends
+    if(fl.contains(selfFriend)){
+      return false
+    }
+
+    //Check to see that self is not already a pending friend for the friend
+    val pfl = Backend.pages(friendId).pendingFriendsList.pendingFriends
+    if(pfl.contains(selfFriend)){
+      return false
+    }
+
+    return true
+
+  }
 
 }
 

@@ -17,9 +17,16 @@ case class SignedChallenge(id: Int, signedChallenge: Array[Byte]) extends Messag
 case class LoginResponse(sessionToken: Array[Byte], success: Int) extends Message
 
 //Friend messages
-case class AddFriend(requesterID: Int, requesterName: String, friendName: String) extends Message
-case class GetFriendsList(requesterID: Int) extends Message
+case class GetPublicKey(id: Int, session: Array[Byte], name: String)
+case class PublicKeyMsg(id: Int, publicKeyEncoded: Array[Byte])
+case class AddPendingFriend(id: Int, session: Array[Byte], friendId: Int, self: Friend)
+case class AcceptFriends(id: Int, session: Array[Byte], newFriends: List[Friend], selfCards: List[Friend])
+case class GetPendingFriendsList(id: Int, session: Array[Byte])
+case class GetFriendsList(id: Int, session: Array[Byte]) extends Message
 case class FriendsListMsg(friends: List[Friend]) extends Message
+case class PendingFriendsListMsg(pendingFriends: List[Friend]) extends Message
+//case class AddFriend(requesterID: Int, requesterName: String, friendName: String) extends Message
+
 
 //Profile messages
 case class GetProfile(id: Int) extends Message
