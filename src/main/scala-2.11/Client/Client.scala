@@ -130,7 +130,8 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   def addSelfToPendingOfFriend(pubKeyMsg: PublicKeyMsg): Future[String] = {
 
     println("ADDING SELF TO FRIEND")
-    val aesKeyEncrypted = rsa.encrypt(publicKey, aeskey.getEncoded)
+    val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
+    val aesKeyEncrypted = rsa.encrypt(publicKeyOfFriend, aeskey.getEncoded)
     val selfCard = Friend(id,name,publicKey.getEncoded,aesKeyEncrypted)
     val friendId = pubKeyMsg.id
 
