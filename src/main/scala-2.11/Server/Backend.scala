@@ -61,9 +61,10 @@ class Messenger extends Actor{
     //, publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]
     case NewPrivateMessage(id:Int, session: Array[Byte], receiverId: Int, fbMessage: FbMessage) => {
       Backend.pages(receiverId).messageList.messages = Backend.pages(receiverId).messageList.messages :+ fbMessage
-      println("Messenger got banged")
+      println(Backend.pages(id).profile.name + " sent a private message to " + Backend.pages(receiverId).profile.name)
+      println(Backend.pages(receiverId).messageList.messages)
 //    println("Sent private message to : " + receiverId + " from: " + id)
-      sender ! "Send a private message yo"
+      sender ! "Send a private message"
     }
   }
 }

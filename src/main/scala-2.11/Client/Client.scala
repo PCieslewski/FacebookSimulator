@@ -355,7 +355,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       case 2 => "What's up"
       case 3 => "Howdy"
       case 4 => "We should catch up sometime!"
-      case 5 => "Did you see the game last night"
+      case 5 => "Did you see the game last night?"
       case 6 => "Why are the Steelers so good?"
       case 7 => "When do you want to study?"
     }
@@ -386,7 +386,10 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
         val thatFriend = friendListMsg.friends(num)
         val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
 
+        //how to get friends public key??
         val encryptedMessage = rsa.encrypt(friendsPublicKey, choice.getBytes())
+
+        println("friends pubKey: " + friendsPublicKey + " encrypt " + encryptedMessage)
 
         val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
         pipeline(Post("http://localhost:8080/sendPrivateMessage", new NewPrivateMessage(id, session, thatFriend.id, FbMessage(encryptedMessage, name))))
@@ -410,7 +413,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 //        }
 
 //        println("Friend: " + thatFriend)
-        println(id + " sent a private message to " + thatFriend.id)
+        println(name + " sent the private message: '" + choice + "' to " + thatFriend.name)
 //        println("****************")
 //        println(name + " :: " + fl.friends)
 ////        println("___________________________")
@@ -437,13 +440,36 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   def readPrivateMessages()  = {
-    println("reading private message!")
+    println("about to read my most recent private message!")
+    println("I'm: " + name)
     /*
     Steps:
     1)Get Private message list
     2)decrypt
     3)read most recent!
      */
+
+    val futureOwnMessages: Future[PageMsg] = getPage(id)
+
+    futureOwnMessages onComplete {
+      case Success(ownMessages) => {
+        println(name + ": Reading my most recent private message!")
+        if(ownMessages.fbMessages.size == 0) {
+          println("No private messages yet!")
+        }
+        else {
+          val mostRecentPrivateMessage = ownMessages.fbMessages.last
+          //        val decyrptMessage: String = new String(aes.decrypt(aeskey, mostRecentPrivateMessage.encryptedMessage))
+//          println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  " + publicKey)
+          println(ownMessages.fbMessages.toString())
+          val decryptMessage = rsa.decrypt(privateKey, mostRecentPrivateMessage.encryptedMessage)
+          println(name + ": My most recent private message was from: " + mostRecentPrivateMessage.sender + " and it said: " + decryptMessage + " debug: " + mostRecentPrivateMessage.encryptedMessage)
+        }
+      }
+      case Failure(r) => {
+        println("Failed to read private messages")
+      }
+    }
 
 //    val futureMessageList: Future[]
   }
@@ -497,10 +523,10 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   context.system.scheduler.scheduleOnce((14000+delayMillis) millisecond) {
     readOwnPage()
   }
-//
-//  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
-//    self ! new TakeAction()
-//  }
+
+  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+    self ! new TakeAction()
+  }
 
   def receive = {
     case TakeAction() => {

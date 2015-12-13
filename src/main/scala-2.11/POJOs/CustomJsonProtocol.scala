@@ -42,7 +42,7 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   implicit val NewPictureFormat = jsonFormat2(NewPicture)
 
   implicit val GetPageFormat = jsonFormat3(GetPage)
-  implicit val PageMsgFormat = jsonFormat4(PageMsg)
+  implicit val PageMsgFormat = jsonFormat5(PageMsg)
 
   implicit val NewPrivateMessageFormat = jsonFormat4(NewPrivateMessage)
 }

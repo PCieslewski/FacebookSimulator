@@ -247,7 +247,8 @@ object Router extends App with SimpleRoutingApp{
                   Backend.pages(id).profile,
                   Backend.pages(id).postsList.posts,
                   Backend.pages(id).album.pictures,
-                  Backend.pages(id).friendsList.friends
+                  Backend.pages(id).friendsList.friends,
+                  Backend.pages(id).messageList.messages
                 )
                 complete(pageMsg)
               }

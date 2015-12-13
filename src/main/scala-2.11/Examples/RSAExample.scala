@@ -24,6 +24,7 @@ object RSAExample {
     println("--------------------\n")
 
     //Testing RSA
+    println("RSA HERE!")
     val kp = rsa.generateKeyPair()
     val pubKey = kp.getPublic
     val privKey = kp.getPrivate
