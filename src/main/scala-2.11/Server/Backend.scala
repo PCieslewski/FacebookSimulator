@@ -58,8 +58,12 @@ object Backend {
 
 class Messenger extends Actor{
   def receive = {
-    case NewPrivateMessage(message: String, id: Int, session: Array[Byte], publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]) => {
+    //, publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]
+    case NewPrivateMessage(id:Int, session: Array[Byte], receiverId: Int, fbMessage: FbMessage) => {
+      Backend.pages(receiverId).messageList.messages = Backend.pages(receiverId).messageList.messages :+ fbMessage
       println("Messenger got banged")
+//    println("Sent private message to : " + receiverId + " from: " + id)
+      sender ! "Send a private message yo"
     }
   }
 }

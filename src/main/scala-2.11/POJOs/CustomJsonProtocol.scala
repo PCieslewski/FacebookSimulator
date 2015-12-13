@@ -12,7 +12,7 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   implicit val FbPostFormat = jsonFormat2(FbPost)
   implicit val PictureFormat = jsonFormat1(Picture)
   implicit val ProfileFormat = jsonFormat4(Profile)
-  implicit val FbMessageFormat = jsonFormat3(FbMessage)
+  implicit val FbMessageFormat = jsonFormat2(FbMessage)
 
   implicit val RegisterRequestFormat = jsonFormat2(RegisterRequest)
   implicit val RegisterResponseFormat = jsonFormat1(RegisterResponse)
@@ -44,5 +44,5 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
   implicit val GetPageFormat = jsonFormat1(GetPage)
   implicit val PageMsgFormat = jsonFormat4(PageMsg)
 
-  implicit val NewPrivateMessageFormat = jsonFormat3(FbMessage)
+  implicit val NewPrivateMessageFormat = jsonFormat4(NewPrivateMessage)
 }

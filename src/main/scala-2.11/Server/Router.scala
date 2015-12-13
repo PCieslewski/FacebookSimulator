@@ -247,20 +247,26 @@ object Router extends App with SimpleRoutingApp{
     }~
     path("sendPrivateMessage"){
       post {
-        println("about to do some private messages")
         decompressRequest() {
           entity(as[NewPrivateMessage]) { newPrivateMessage =>
             detach() {
-              Backend.messenger ! newPrivateMessage
-
-              complete{
-                "finished sending private message?."
+              val loggedIn = Backend.verifySession(newPrivateMessage.id, newPrivateMessage.session)
+              if(loggedIn){
+                val f: Future[String] = (Backend.messenger ? newPrivateMessage).mapTo[String]
+                onComplete(f){
+                  case Success(resp: String) => complete(newPrivateMessage.id + " sent message to: " + newPrivateMessage.receiverId)
+                  case Failure(t) => complete("Cannot post message. : "+t)
+                }
+              }
+              else{
+                println("A user failed session verification in NewPost.")
+                complete("Not logged in.")
               }
             }
           }
         }
       }
-    }~
+    }
 
 //sendPrivateMessage
 

@@ -368,30 +368,37 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
     futFriendList onComplete {
       case Success(friendListMsg) => {
-        println("****************")
+//        println("****************")
 //        println("In on complete! Here is r: " + friendListMsg)
         val num = RNG.getRandNum(friendListMsg.friends.size)
         val thatFriend = friendListMsg.friends(num)
-
-        println("friend: " + thatFriend)
-        println("Pub key encoded: " + rsa.decodePublicKey(thatFriend.publicKeyEncoded))
-
         val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
-        val aesKeyEncrypted = rsa.encrypt(friendsPublicKey, aeskey.getEncoded) //need array of bytes
-        val friendId = thatFriend.id
-//        val privateMessage = new FbMessage(choice, friendId, session, thatFriend.publicKeyEncoded, aesKeyEncrypted)
-        val privateMessage = new FbMessage(choice, friendId, session)
+
+        val encryptedMessage = rsa.encrypt(friendsPublicKey, choice.getBytes())
 
         val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-        val f: Future[String] = pipeline(Post("http://localhost:8080/sendPrivateMessage", privateMessage))
+        pipeline(Post("http://localhost:8080/sendPrivateMessage", new NewPrivateMessage(id, session, thatFriend.id, FbMessage(encryptedMessage, name))))
 
-        f onComplete{
-          case Success(r) => { println("Sent a private message!" + r) }
-          case Failure(t) => { println("ERROR: " + t) }
-        }
+//
+//        println("friend: " + thatFriend)
+//        println("Pub key encoded: " + rsa.decodePublicKey(thatFriend.publicKeyEncoded))
+//
+//        val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
+//        val aesKeyEncrypted = rsa.encrypt(friendsPublicKey, aeskey.getEncoded) //need array of bytes
+//        val friendId = thatFriend.id
+////        val privateMessage = new FbMessage(choice, friendId, session, thatFriend.publicKeyEncoded, aesKeyEncrypted)
+//        val privateMessage = new FbMessage(choice, friendId, session)
+//
+//        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+//        val f: Future[String] = pipeline(Post("http://localhost:8080/sendPrivateMessage", new FbMessage(choice, friendId, session)))
+//
+//        f onComplete{
+//          case Success(r) => { println("Sent a private message!" + r) }
+//          case Failure(t) => { println("ERROR: " + t) }
+//        }
 
 //        println("Friend: " + thatFriend)
-        println("****************")
+        println(id + " sent a private message to " + thatFriend.id)
 //        println("****************")
 //        println(name + " :: " + fl.friends)
 ////        println("___________________________")
@@ -405,7 +412,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 ////        val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
 //        println("****************")
       }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
+      case Failure(t) => { println("An error has occured: " + t.getMessage) }
     }
 
 
@@ -419,6 +426,14 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   def readPrivateMessages()  = {
     println("reading private message!")
+    /*
+    Steps:
+    1)Get Private message list
+    2)decrypt
+    3)read most recent!
+     */
+
+    val futureMessageList: Future[]
   }
 
   def takeAction() = {
