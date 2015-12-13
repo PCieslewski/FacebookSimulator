@@ -35,12 +35,6 @@ object Backend {
   }
 
   def getIdFromName(name: String): Int = {
-//    for(i <- pages.indices){
-//      if(pages(i).profile.name.equals(name)){
-//        return i
-//      }
-//    }
-//    return -1
     return nameIdMap.getOrElse(name, -1)
   }
 
@@ -69,7 +63,7 @@ class Poster extends Actor{
   def receive = {
     case NewPost(id: Int, session: Array[Byte], receiverId: Int, fbPost: FbPost) => {
       Backend.pages(receiverId).postsList.posts = Backend.pages(receiverId).postsList.posts :+ fbPost
-      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
+      println("Posted on " + Backend.pages(receiverId).name + " postlist.")
       println(Backend.pages(receiverId).postsList.posts)
       sender ! "Posted Message."
     }

@@ -25,6 +25,10 @@ import spray.httpx.SprayJsonSupport._
 
 import POJOs.crypto._
 
+import spray.json
+import spray.json._
+import CustomJsonProtocol._
+
 
 
 
@@ -266,29 +270,32 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   def updateProfile() = {
-//    val birthday = "11/12/1992"
-//    val relationship = "In a Relationship"
-//    val pic = new Picture(Array.fill[Byte](1024)(1))
-//    val newPro: Profile = new Profile(name, birthday, pic, relationship)
-//
-//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-//    val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, newPro)))
-//    f onComplete {
-//      case Success(r) => { if(shouldPrint) println(name + ": Updated my profile!") }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
+    val birthday = "11/12/1992"
+    val relationship = "In a Relationship"
+    val pic = new Picture(Array.fill[Byte](10)(1))
+    val newPro: Profile = new Profile(name, birthday, pic, relationship)
+    val newProJson = newPro.toJson
+    val newProEncrypted = aes.encrypt(aeskey, newProJson.prettyPrint.getBytes)
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, session, newProEncrypted)))
+    f onComplete {
+      case Success(r) => { println(name + ": Updated my profile!") }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
   }
 
   def postPicture() = {
 
-//    val newPicture = new Picture(Array.fill[Byte](1024)(2))
-//
-//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-//    val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, newPicture)))
-//    f onComplete {
-//      case Success(r) => { if(shouldPrint) println(name + ": Posted a new picture in my album!") }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
+    val newPicture = new Picture(aes.encrypt(aeskey,Array.fill[Byte](10)(2)))
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, session, newPicture)))
+    f onComplete {
+      case Success(r) => { println(name + ": Posted a new picture in my album!") }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+
   }
 
   def readRandomFriendPage() = {
@@ -370,6 +377,14 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   context.system.scheduler.scheduleOnce((14000+delayMillis) millisecond) {
+    updateProfile()
+  }
+
+  context.system.scheduler.scheduleOnce((16000+delayMillis) millisecond) {
+    postPicture()
+  }
+
+  context.system.scheduler.scheduleOnce((18000+delayMillis) millisecond) {
     readOwnPage()
   }
 //
