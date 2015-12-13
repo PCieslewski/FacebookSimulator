@@ -180,9 +180,17 @@ object Router extends App with SimpleRoutingApp{
         decompressRequest() {
           entity(as[NewPost]) { newPost =>
             detach() {
-              Backend.poster ! newPost
-              complete{
-                "Posted."
+              val loggedIn = Backend.verifySession(newPost.id, newPost.session)
+              if(loggedIn){
+                val f: Future[String] = (Backend.poster ? newPost).mapTo[String]
+                onComplete(f){
+                  case Success(resp: String) => complete("Posted message!")
+                  case Failure(t) => complete("Cannot post message. : "+t)
+                }
+              }
+              else{
+                println("A user failed session verification in NewPost.")
+                complete("Not logged in.")
               }
             }
           }
@@ -232,14 +240,21 @@ object Router extends App with SimpleRoutingApp{
         decompressRequest() {
           entity(as[GetPage]) { getPage =>
             detach() {
-              val id = getPage.id
-              val pageMsg = new PageMsg(
-                Backend.pages(id).profile,
-                Backend.pages(id).postsList.posts,
-                Backend.pages(id).album.pictures,
-                Backend.pages(id).friendsList.friends
-              )
-              complete(pageMsg)
+              val loggedIn = Backend.verifySession(getPage.id, getPage.session)
+              if(loggedIn) {
+                val id = getPage.idOfPage
+                val pageMsg = new PageMsg(
+                  Backend.pages(id).profile,
+                  Backend.pages(id).postsList.posts,
+                  Backend.pages(id).album.pictures,
+                  Backend.pages(id).friendsList.friends
+                )
+                complete(pageMsg)
+              }
+              else{
+                println("A user failed session verification in GetPage.")
+                complete("Not logged in.")
+              }
             }
           }
         }
