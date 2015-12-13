@@ -191,24 +191,36 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   }
 
-//  def acceptFriends() = {
-//
-//    val futPflMsg = getPendingFriendsList()
-//    val
-//
-//  }
-
-
-
   def postOnOwnPage() = {
-//    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-//    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
-//      new NewPost(id,FbPost("Post number " + postNumber + " from " + name + ".",name))))
-//    f onComplete {
-//      case Success(r) => { if(shouldPrint) println(name + ": I posted on my own wall!") }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
-//    postNumber = postNumber + 1
+    val msg: String = "Post number " + postNumber + " from " + name + "."
+    val msgEncrypted = aes.encrypt(aeskey,msg.getBytes)
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
+      new NewPost(id,session,id,FbPost(msgEncrypted,name))))
+    f onComplete {
+      case Success(r) => { println(name + ": I posted on my own wall!") }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+    postNumber = postNumber + 1
+  }
+
+  def readOwnPage() = {
+    val fOwnPageMsg: Future[PageMsg] = getPage(id)
+    fOwnPageMsg onComplete{
+      case Success(ownPageMsg) => {
+        println(name + ": Reading my own wall!")
+        val mostRecentPost = ownPageMsg.fbPosts.last
+        val decryptedMsg: String = new String(aes.decrypt(aeskey, mostRecentPost.encryptedMessage))
+        println(name + ": My most recent post was from " + mostRecentPost.posterName + " and it said- " + decryptedMsg)
+      }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+  }
+
+  def getPage(idOfPage: Int): Future[PageMsg] = {
+    val pipeline: HttpRequest => Future[PageMsg] = sendReceive ~> unmarshal[PageMsg]
+    pipeline(Get("http://localhost:8080/page", new GetPage(id,session,idOfPage)))
   }
 
   //Posts on a random friends page.
@@ -433,7 +445,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     3)read most recent!
      */
 
-    val futureMessageList: Future[]
+//    val futureMessageList: Future[]
   }
 
   def takeAction() = {
@@ -478,9 +490,17 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     printFriendList()
   }
 
-  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
-    self ! new TakeAction()
+  context.system.scheduler.scheduleOnce((12000+delayMillis) millisecond) {
+    postOnOwnPage()
   }
+
+  context.system.scheduler.scheduleOnce((14000+delayMillis) millisecond) {
+    readOwnPage()
+  }
+//
+//  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+//    self ! new TakeAction()
+//  }
 
   def receive = {
     case TakeAction() => {

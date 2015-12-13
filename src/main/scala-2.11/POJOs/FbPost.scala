@@ -1,3 +1,3 @@
 package POJOs
 
-case class FbPost(message: String, posterName: String) {}
+case class FbPost(encryptedMessage: Array[Byte], posterName: String) {}

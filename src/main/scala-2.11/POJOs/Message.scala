@@ -36,11 +36,9 @@ case class SetProfile(id: Int, profile: Profile) extends Message
 case class NewPicture(id: Int, picture: Picture) extends Message
 
 //Pages messages
-case class GetPage(id: Int) extends Message
+case class GetPage(id: Int, session: Array[Byte], idOfPage: Int) extends Message
 case class PageMsg(profile: Profile, fbPosts: List[FbPost], album: List[Picture], friends: List[Friend]) extends Message
 
-//FbPost messages
-case class NewPost(receiverId: Int, fbPost: FbPost) extends Message
-
 //FbMessage private messages
-case class NewPrivateMessage(id: Int, session: Array[Byte], receiverId: Int, fbMessage: FbMessage) extends Message
+
+case class NewPost(id: Int, session: Array[Byte], receiverId: Int, fbPost: FbPost) extends Message

@@ -80,10 +80,11 @@ class Registrar extends Actor{
 
 class Poster extends Actor{
   def receive = {
-    case NewPost(receiverId: Int, fbPost: FbPost) => {
+    case NewPost(id: Int, session: Array[Byte], receiverId: Int, fbPost: FbPost) => {
       Backend.pages(receiverId).postsList.posts = Backend.pages(receiverId).postsList.posts :+ fbPost
-//      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
-//      println(Backend.pages(receiverId).postsList.posts)
+      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
+      println(Backend.pages(receiverId).postsList.posts)
+      sender ! "Posted Message."
     }
   }
 }
