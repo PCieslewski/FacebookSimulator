@@ -462,7 +462,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
           //        val decyrptMessage: String = new String(aes.decrypt(aeskey, mostRecentPrivateMessage.encryptedMessage))
 //          println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  " + publicKey)
           println(ownMessages.fbMessages.toString())
-          val decryptMessage = rsa.decrypt(privateKey, mostRecentPrivateMessage.encryptedMessage)
+          val decryptMessage = new String(rsa.decrypt(privateKey, mostRecentPrivateMessage.encryptedMessage))
           println(name + ": My most recent private message was from: " + mostRecentPrivateMessage.sender + " and it said: " + decryptMessage + " debug: " + mostRecentPrivateMessage.encryptedMessage)
         }
       }

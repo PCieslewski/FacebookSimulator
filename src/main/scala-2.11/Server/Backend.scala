@@ -64,7 +64,7 @@ class Messenger extends Actor{
       println(Backend.pages(id).profile.name + " sent a private message to " + Backend.pages(receiverId).profile.name)
       println(Backend.pages(receiverId).messageList.messages)
 //    println("Sent private message to : " + receiverId + " from: " + id)
-      sender ! "Send a private message"
+      sender ! "Sent a private message"
     }
   }
 }
