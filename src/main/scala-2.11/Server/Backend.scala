@@ -22,6 +22,7 @@ object Backend {
   val poster = backendSystem.actorOf(Props(new Poster()), name = "Poster")
   val loginActor = backendSystem.actorOf(Props(new LoginActor()), name = "LoginActor")
   val nameIdMap: Map[String,Int] = Map()
+  val messenger = backendSystem.actorOf(Props(new Messenger()), name = "Messenger")
 
   def registerNewUser(name: String, encodedPublicKey: Array[Byte]): Int = {
     pages += new Page(name, encodedPublicKey)
@@ -53,6 +54,14 @@ object Backend {
     }
   }
 
+}
+
+class Messenger extends Actor{
+  def receive = {
+    case NewPrivateMessage(message: String, id: Int, session: Array[Byte], publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]) => {
+      println("Messenger got banged")
+    }
+  }
 }
 
 //Actor that adds new pages into the system.

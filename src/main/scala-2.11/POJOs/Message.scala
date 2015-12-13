@@ -41,3 +41,6 @@ case class PageMsg(profile: Profile, fbPosts: List[FbPost], album: List[Picture]
 
 //FbPost messages
 case class NewPost(receiverId: Int, fbPost: FbPost) extends Message
+
+//FbMessage private messages
+case class NewPrivateMessage(message: String, id: Int, session: Array[Byte], publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]) extends Message

@@ -244,9 +244,25 @@ object Router extends App with SimpleRoutingApp{
           }
         }
       }
-    }
+    }~
+    path("sendPrivateMessage"){
+      post {
+        println("about to do some private messages")
+        decompressRequest() {
+          entity(as[NewPrivateMessage]) { newPrivateMessage =>
+            detach() {
+              Backend.messenger ! newPrivateMessage
 
+              complete{
+                "finished sending private message?."
+              }
+            }
+          }
+        }
+      }
+    }~
 
+//sendPrivateMessage
 
 
   }

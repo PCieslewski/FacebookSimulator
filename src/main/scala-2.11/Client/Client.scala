@@ -294,8 +294,135 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 //    }
   }
 
+  //method to get their public key
+  def senderHelper(friendListMsg: FriendsListMsg): Future[String] = Future {
+    println("~~~~~~~~~~~~~~~~~")
+    val num = RNG.getRandNum(friendListMsg.friends.size)
+    val thatFriend = friendListMsg.friends(num).name
+
+    println("Friend: " + thatFriend)
+
+    val futurePubKey: Future[PublicKeyMsg] = getPublicKeyOf(thatFriend)
+    val f = futurePubKey flatMap(pubKeyMsg => senderHelperHelper(pubKeyMsg))
+
+//    val futFriendList = getFriendsList()
+//    val f = futFriendList flatMap(friendListMsg => senderHelper(friendListMsg))
+
+
+//    futurePubKey onComplete {
+//      case Success(r) => {
+//        println("THEIR PUB KEY :" + futurePubKey)
+//        println("decoded? :" + rsa.decodePublicKey(futurePubKey.publicKeyEncoded))
+//        println("~~~~~~~~~~~~~~~~~")
+//      }
+//      case Failure(t) => {
+//        println("Failed in senderHelper")
+//      }
+//    }
+
+    temp() //makes return future[String]
+  }
+
+  def senderHelperHelper(pubKeyMsg: PublicKeyMsg): Future[String] = Future {
+    val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
+
+    println("pub key: " + publicKeyOfFriend)
+
+    temp()
+  }
+
+  def temp(): String = {
+    return "hey"
+  }
+
+  def generatePrivateMessage(): String = {
+    val num = RNG.getRandNum(8)
+    num match{
+      case 0 => "Hey"
+      case 1 => "How's life?"
+      case 2 => "What's up"
+      case 3 => "Howdy"
+      case 4 => "We should catch up sometime!"
+      case 5 => "Did you see the game last night"
+      case 6 => "Why are the Steelers so good?"
+      case 7 => "When do you want to study?"
+    }
+  }
+
+  def sendPrivateMessage()  = {
+    println("sending private message!")
+
+    val choice = generatePrivateMessage()
+    /*
+    steps:
+    1)get friends list
+    2)pick random friend
+    3)get their public key
+    4)encrypt my message with that key
+    5)add it to their postList
+     */
+
+    val futFriendList = getFriendsList()
+                                                      // VV get public key
+//    val f = futFriendList flatMap(friendListMsg => senderHelper(friendListMsg))
+
+    futFriendList onComplete {
+      case Success(friendListMsg) => {
+        println("****************")
+//        println("In on complete! Here is r: " + friendListMsg)
+        val num = RNG.getRandNum(friendListMsg.friends.size)
+        val thatFriend = friendListMsg.friends(num)
+
+        println("friend: " + thatFriend)
+        println("Pub key encoded: " + rsa.decodePublicKey(thatFriend.publicKeyEncoded))
+
+        val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
+        val aesKeyEncrypted = rsa.encrypt(friendsPublicKey, aeskey.getEncoded) //need array of bytes
+        val friendId = thatFriend.id
+//        val privateMessage = new FbMessage(choice, friendId, session, thatFriend.publicKeyEncoded, aesKeyEncrypted)
+        val privateMessage = new FbMessage(choice, friendId, session)
+
+        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+        val f: Future[String] = pipeline(Post("http://localhost:8080/sendPrivateMessage", privateMessage))
+
+        f onComplete{
+          case Success(r) => { println("Sent a private message!" + r) }
+          case Failure(t) => { println("ERROR: " + t) }
+        }
+
+//        println("Friend: " + thatFriend)
+        println("****************")
+//        println("****************")
+//        println(name + " :: " + fl.friends)
+////        println("___________________________")
+////        println("SIZE OF LIST: " + fl.friends.size)
+////        val friendsListSize = fl.friends.size
+////        val num = RNG.getRandNum(friendsListSize)
+////        println("Rando Num: " + num)
+//        val thatFriend = fl.friends(num)
+//        println("That friend: " + thatFriend)
+//        println("THEIR NAME: " + thatFriend.name) //pass into getPublicKeyOf
+////        val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
+//        println("****************")
+      }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+
+
+//    val futPubKeyMsg = getPublicKeyOf(randFriendName)
+//    val f = futPubKeyMsg flatMap(pubKeyMsg => addSelfToPendingOfFriend(pubKeyMsg))
+//    f onComplete{
+//      case Success(r) => { println("Added a random friend!" + r) }
+//      case Failure(t) => println("An error has occured: " + t.getMessage)
+//    }
+  }
+
+  def readPrivateMessages()  = {
+    println("reading private message!")
+  }
+
   def takeAction() = {
-    val num = RNG.getRandNum(6)
+    val num = RNG.getRandNum(8)
     num match{
       case 0 => addRandomFriend()
       case 1 => postOnOwnPage()
@@ -303,6 +430,8 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       case 3 => postPicture()
       case 4 => updateProfile()
       case 5 => readRandomFriendPage()
+      case 6 => sendPrivateMessage()
+      case 7 => readPrivateMessages()
     }
     context.system.scheduler.scheduleOnce(2 seconds, self, TakeAction())
   }
@@ -333,10 +462,10 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
     printFriendList()
   }
-//
-//  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
-//    self ! new TakeAction()
-//  }
+
+  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+    self ! new TakeAction()
+  }
 
   def receive = {
     case TakeAction() => {

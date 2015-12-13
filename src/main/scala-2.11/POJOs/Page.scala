@@ -7,5 +7,6 @@ class Page(name: String, publicKeyEncoded_p: Array[Byte]) {
   var album: Album = new Album()
   var friendsList: FriendsList = new FriendsList()
   var pendingFriendsList: PendingFriendsList = new PendingFriendsList()
+  var messageList: MessageList = new MessageList()
 }
 
