@@ -1,6 +1,7 @@
 package Client
 
 import java.util
+import javax.crypto.SecretKey
 
 import POJOs._
 import akka.actor.{ActorSystem, Actor}
@@ -108,7 +109,8 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   //Adds a random friend
   def addRandomFriend() = {
-    val randFriendName = "Bob0"
+    //val randFriendName = "Bob0"
+    val randFriendName = getRandomName()
 
     val futPubKeyMsg = getPublicKeyOf(randFriendName)
     val f = futPubKeyMsg flatMap(pubKeyMsg => addSelfToPendingOfFriend(pubKeyMsg))
@@ -205,14 +207,39 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     postNumber = postNumber + 1
   }
 
+  def postOnFriendPage(friendCard: Friend){
+
+    val idOfPage = friendCard.id
+    val aesKeyOfPageEncoded = rsa.decrypt(privateKey,friendCard.aesKeyEncrypted)
+    val aesKeyOfPage = aes.decodeSecretKey(aesKeyOfPageEncoded)
+
+    val msg: String = "Post number " + postNumber + " from " + name + "."
+    val msgEncrypted = aes.encrypt(aesKeyOfPage,msg.getBytes)
+
+    val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+    val f: Future[String] = pipeline(Post("http://localhost:8080/post",
+      new NewPost(id,session,idOfPage,FbPost(msgEncrypted,name))))
+    f onComplete {
+      case Success(r) => { println(name + ": I posted on " + friendCard.name + "'s wall!") }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
+    postNumber = postNumber + 1
+
+  }
+
   def readOwnPage() = {
     val fOwnPageMsg: Future[PageMsg] = getPage(id)
     fOwnPageMsg onComplete{
       case Success(ownPageMsg) => {
         println(name + ": Reading my own wall!")
-        val mostRecentPost = ownPageMsg.fbPosts.last
-        val decryptedMsg: String = new String(aes.decrypt(aeskey, mostRecentPost.encryptedMessage))
-        println(name + ": My most recent post was from " + mostRecentPost.posterName + " and it said- " + decryptedMsg)
+        if(ownPageMsg.fbPosts.nonEmpty) {
+          val mostRecentPost = ownPageMsg.fbPosts.last
+          val decryptedMsg: String = new String(aes.decrypt(aeskey, mostRecentPost.encryptedMessage))
+          println(name + ": My most recent post was from " + mostRecentPost.posterName + " and it said - " + decryptedMsg)
+        }
+        else{
+          println(name + ": There are no posts on my wall.")
+        }
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
@@ -225,25 +252,17 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   //Posts on a random friends page.
   def postOnRandomFriendPage() = {
-//    val fl: Future[FriendsListMsg] = getFriendsList()
-//    fl onComplete {
-//      case Success(flmsg) => {
-//
-//        val friends = flmsg.friends
-//        val randFriend = friends(RNG.getRandNum(friends.length))
-//        val randFriendID = randFriend.id
-//        val randFriendName = randFriend.name
-//
-//        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-//        val f: Future[String] = pipeline(Post("http://localhost:8080/post",
-//          new NewPost(randFriendID,FbPost("Post number " + postNumber + " from " + name + ".",name))))
-//        postNumber = postNumber + 1
-//        if(shouldPrint) {
-//          println(name + ": I posted on " + randFriendName + "'s wall.")
-//        }
-//      }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
+    val fl: Future[FriendsListMsg] = getFriendsList()
+    fl onComplete {
+      case Success(flmsg) => {
+
+        val friends = flmsg.friends
+        val randFriend = friends(RNG.getRandNum(friends.length))
+        postOnFriendPage(randFriend)
+
+      }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
   }
 
   def updateProfile() = {
@@ -347,7 +366,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   context.system.scheduler.scheduleOnce((12000+delayMillis) millisecond) {
-    postOnOwnPage()
+    postOnRandomFriendPage()
   }
 
   context.system.scheduler.scheduleOnce((14000+delayMillis) millisecond) {
