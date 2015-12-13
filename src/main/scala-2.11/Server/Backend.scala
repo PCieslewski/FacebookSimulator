@@ -36,12 +36,6 @@ object Backend {
   }
 
   def getIdFromName(name: String): Int = {
-//    for(i <- pages.indices){
-//      if(pages(i).profile.name.equals(name)){
-//        return i
-//      }
-//    }
-//    return -1
     return nameIdMap.getOrElse(name, -1)
   }
 
@@ -61,7 +55,7 @@ class Messenger extends Actor{
     //, publicKeyEncoded: Array[Byte], aesKeyEncrypted: Array[Byte]
     case NewPrivateMessage(id:Int, session: Array[Byte], receiverId: Int, fbMessage: FbMessage) => {
       Backend.pages(receiverId).messageList.messages = Backend.pages(receiverId).messageList.messages :+ fbMessage
-      println(Backend.pages(id).profile.name + " sent a private message to " + Backend.pages(receiverId).profile.name)
+      println(Backend.pages(id).name + " sent a private message to " + Backend.pages(receiverId).name)
       println(Backend.pages(receiverId).messageList.messages)
 //    println("Sent private message to : " + receiverId + " from: " + id)
       sender ! "Sent a private message"
@@ -83,7 +77,7 @@ class Poster extends Actor{
   def receive = {
     case NewPost(id: Int, session: Array[Byte], receiverId: Int, fbPost: FbPost) => {
       Backend.pages(receiverId).postsList.posts = Backend.pages(receiverId).postsList.posts :+ fbPost
-      println("Posted on " + Backend.pages(receiverId).profile.name + " postlist.")
+      println("Posted on " + Backend.pages(receiverId).name + " postlist.")
       println(Backend.pages(receiverId).postsList.posts)
       sender ! "Posted Message."
     }

@@ -1,31 +1,24 @@
 package POJOs
 
+import spray.json
+
 import scala.collection.mutable
+import CustomJsonProtocol._
+import spray.json._
 
 object test{
 
   def main(args: Array[String]) {
-//    val myPro: Profile = new Profile("will")
-//    myPro.birthday = "june"
-//    myPro.name = "will"
-//    myPro.status = "Single"
-//
-//    println(myPro)
-//
-//    val will: Friend = new Friend(0,"Will")
-//
-//    println(will)
-//    val test = new Page("Pawel")
-//
-//    println(test.profile)
 
-    val l = mutable.ArrayBuffer[Int]()
+    val pro = Profile("Pawel","11/12/1992",Picture(Array.empty[Byte]),"Taken")
+    val j = pro.toJson
 
-    l += 0
+    println(j.prettyPrint)
 
-    l.insert(1,69)
+    val pro2 = j.convertTo[Profile]
 
-    println(l(1))
+    println(pro2.name)
+
 
   }
 }

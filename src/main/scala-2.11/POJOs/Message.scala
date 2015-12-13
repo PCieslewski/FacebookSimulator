@@ -29,15 +29,16 @@ case class PendingFriendsListMsg(pendingFriends: List[Friend]) extends Message
 
 
 //Profile messages
-case class GetProfile(id: Int) extends Message
-case class SetProfile(id: Int, profile: Profile) extends Message
+//case class GetProfile(id: Int, s) extends Message
+case class SetProfile(id: Int, session: Array[Byte], profileEncrypted: Array[Byte]) extends Message
 
 //Album messages
-case class NewPicture(id: Int, picture: Picture) extends Message
+case class NewPicture(id: Int, session: Array[Byte], picture: Picture) extends Message
 
 //Pages messages
 case class GetPage(id: Int, session: Array[Byte], idOfPage: Int) extends Message
-case class PageMsg(profile: Profile, fbPosts: List[FbPost], album: List[Picture], friends: List[Friend], fbMessages: List[FbMessage]) extends Message
+
+case class PageMsg(profileEncrypted: Array[Byte], fbPosts: List[FbPost], album: List[Picture], friends: List[Friend], fbMessages: List[FbMessage]) extends Message
 
 //FbMessage private messages
 case class NewPrivateMessage(id: Int, session: Array[Byte], receiverId: Int, fbMessage: FbMessage) extends Message

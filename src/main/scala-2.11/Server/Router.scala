@@ -197,26 +197,33 @@ object Router extends App with SimpleRoutingApp{
         }
       }
     }~
-    path("profile"){
-      get {
-        decompressRequest() {
-          entity(as[GetProfile]) { getPro =>
-            detach() {
-              val id = getPro.id
-              complete(Backend.pages(id).profile)
-            }
-          }
-        }
-      }
-    }~
+//    path("profile"){
+//      get {
+//        decompressRequest() {
+//          entity(as[GetProfile]) { getPro =>
+//            detach() {
+//              val id = getPro.id
+//              complete(Backend.pages(id).profileEncrypted)
+//            }
+//          }
+//        }
+//      }
+//    }~
     path("profile"){
       post {
         decompressRequest() {
           entity(as[SetProfile]) { setPro =>
             detach() {
-              val id = setPro.id
-              Backend.pages(id).profile = setPro.profile
-              complete("Updated profile.")
+              val loggedIn = Backend.verifySession(setPro.id, setPro.session)
+              if(loggedIn) {
+                val id = setPro.id
+                Backend.pages(id).profileEncrypted = setPro.profileEncrypted
+                complete("Updated profile.")
+              }
+              else{
+                println("A user failed session verification in SetProfile.")
+                complete("Not logged in.")
+              }
             }
           }
         }
@@ -227,9 +234,16 @@ object Router extends App with SimpleRoutingApp{
         decompressRequest() {
           entity(as[NewPicture]) { newPic =>
             detach() {
-              val id = newPic.id
-              Backend.pages(id).album.pictures = Backend.pages(id).album.pictures :+ newPic.picture
-              complete("Added Picture.")
+              val loggedIn = Backend.verifySession(newPic.id, newPic.session)
+              if(loggedIn) {
+                val id = newPic.id
+                Backend.pages(id).album.pictures = Backend.pages(id).album.pictures :+ newPic.picture
+                complete("Added Picture.")
+              }
+              else{
+                println("A user failed session verification in SetProfile.")
+                complete("Not logged in.")
+              }
             }
           }
         }
@@ -244,7 +258,7 @@ object Router extends App with SimpleRoutingApp{
               if(loggedIn) {
                 val id = getPage.idOfPage
                 val pageMsg = new PageMsg(
-                  Backend.pages(id).profile,
+                  Backend.pages(id).profileEncrypted,
                   Backend.pages(id).postsList.posts,
                   Backend.pages(id).album.pictures,
                   Backend.pages(id).friendsList.friends,

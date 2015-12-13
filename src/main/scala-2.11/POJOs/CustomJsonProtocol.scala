@@ -36,10 +36,10 @@ object CustomJsonProtocol extends DefaultJsonProtocol{
 
   implicit val NewPostFormat = jsonFormat4(NewPost)
 
-  implicit val GetProfileFormat = jsonFormat1(GetProfile)
-  implicit val SetProfileFormat = jsonFormat2(SetProfile)
+  //implicit val GetProfileFormat = jsonFormat1(GetProfile)
+  implicit val SetProfileFormat = jsonFormat3(SetProfile)
 
-  implicit val NewPictureFormat = jsonFormat2(NewPicture)
+  implicit val NewPictureFormat = jsonFormat3(NewPicture)
 
   implicit val GetPageFormat = jsonFormat3(GetPage)
   implicit val PageMsgFormat = jsonFormat5(PageMsg)
