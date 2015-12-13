@@ -299,37 +299,48 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   def readRandomFriendPage() = {
-//    val fl: Future[FriendsListMsg] = getFriendsList()
-//    fl onComplete {
-//      case Success(flmsg) => {
-//
-//        val friends = flmsg.friends
-//
-//        if(friends.nonEmpty) {
-//
-//          val randFriend = friends(RNG.getRandNum(friends.length))
-//          val randFriendID = randFriend.id
-//          val randFriendName = randFriend.name
-//
-//          val pipeline: HttpRequest => Future[PageMsg] = sendReceive ~> unmarshal[PageMsg]
-//          val f: Future[PageMsg] = pipeline(Get("http://localhost:8080/page", GetPage(randFriendID)))
-//          f onComplete {
-//            case Success(pageMsg) => {
-//              if(shouldPrint) {
-//                println(name + ": Reading " + randFriendName + "'s page.")
-//                if (pageMsg.fbPosts.nonEmpty) {
-//                  println("Their most recent post was -- " + pageMsg.fbPosts.last)
-//                }
-//              }
-//            }
-//            case Failure(t) => println("An error has occured: " + t.getMessage)
-//          }
-//
-//        }
-//
-//      }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
+
+    var friendAesKey: SecretKey = null
+    var randFriend: Friend = null
+
+    val futfl = getFriendsList()
+    val futpage = futfl.flatMap{
+      fl => {
+          randFriend = fl.friends(RNG.getRandNum(fl.friends.length))
+          friendAesKey = aes.decodeSecretKey(rsa.decrypt(privateKey, randFriend.aesKeyEncrypted))
+          getPage(randFriend.id)
+      }
+    }
+
+    futpage onComplete {
+      case Success(friendPage) => {
+
+        println(name + ": Reading "+ randFriend.name +"'s page...")
+
+        //Read the posts on the page.
+        if(friendPage.fbPosts.nonEmpty) {
+          val mostRecentPost = friendPage.fbPosts.last
+          val decryptedMsg: String = new String(aes.decrypt(friendAesKey, mostRecentPost.encryptedMessage))
+          println(name + ": The most recent post on "+ randFriend.name +"'s page was from " + mostRecentPost.posterName + " and it said - " + decryptedMsg)
+        }
+        else{
+          println(name + ": There are no posts on "+ randFriend.name +"'s page.")
+        }
+
+        //Check the status on the page.
+        val friendProfileJson = new String(aes.decrypt(friendAesKey,friendPage.profileEncrypted)).parseJson
+        val friendProfile = friendProfileJson.convertTo[Profile]
+        println(name + ": " + randFriend.name +"'s has a relationship status of: " + friendProfile.relationship)
+
+        //Look at the most recent photo of the page.
+        val mostRecentPhotoEncrypted = friendPage.album.last
+        val mostRecentPhoto = Picture(aes.decrypt(friendAesKey,mostRecentPhotoEncrypted.bytes))
+        println(name + ": " + randFriend.name +"'s last photo: " + mostRecentPhoto.toJson.prettyPrint)
+
+
+      }
+      case Failure(t) => println("An error has occured: " + t.getMessage)
+    }
   }
 
   def takeAction() = {
@@ -385,7 +396,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   context.system.scheduler.scheduleOnce((18000+delayMillis) millisecond) {
-    readOwnPage()
+    readRandomFriendPage()
   }
 //
 //  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
