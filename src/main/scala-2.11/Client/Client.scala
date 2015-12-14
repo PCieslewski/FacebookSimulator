@@ -49,6 +49,9 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   val privateKey = keypair.getPrivate
   val aeskey = aes.generateSecretKey
 
+  val delayBetweenActions = 2000
+  val delay = 0
+
 
   //Some numbers to track
   var postNumber = 0
@@ -91,7 +94,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     futLoginResp onComplete {
       case Success(loginResp) => {
         if(loginResp.success == 1) {
-          println(name + ": I logged in successfully!")
+          if(shouldPrint) println(name + ": I logged in successfully!")
           session = loginResp.sessionToken
         }
       }
@@ -119,7 +122,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val futPubKeyMsg = getPublicKeyOf(randFriendName)
     val f = futPubKeyMsg flatMap(pubKeyMsg => addSelfToPendingOfFriend(pubKeyMsg))
     f onComplete{
-      case Success(r) => { println("Added a random friend!" + r) }
+      case Success(r) => { if(shouldPrint) println(name + ": Sent friend request to " + randFriendName) }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
 
@@ -127,7 +130,6 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
 
   //Helper function for adding a friend
   def getPublicKeyOf(nameOfFriend: String): Future[PublicKeyMsg] = {
-    println("GETTING A PUB KEY")
     val pipeline: HttpRequest => Future[PublicKeyMsg] = sendReceive ~> unmarshal[PublicKeyMsg]
     pipeline(Get("http://localhost:8080/key", new GetPublicKey(id, session, nameOfFriend)))
   }
@@ -135,7 +137,6 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   //Helper function for adding a friend.
   def addSelfToPendingOfFriend(pubKeyMsg: PublicKeyMsg): Future[String] = {
 
-    println("ADDING SELF TO FRIEND")
     val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
     val aesKeyEncrypted = rsa.encrypt(publicKeyOfFriend, aeskey.getEncoded)
     val selfCard = Friend(id,name,publicKey.getEncoded,aesKeyEncrypted)
@@ -149,7 +150,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   def printPendingFriendList() = {
     val futPendingFriendList = getPendingFriendsList()
     futPendingFriendList onComplete{
-      case Success(pfl) => { println(name + " :: " + pfl.pendingFriends) }
+      case Success(pfl) => { if(shouldPrint) println(name + " :: " + pfl.pendingFriends) }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -167,7 +168,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   def printFriendList() = {
     val futFriendList = getFriendsList()
     futFriendList onComplete{
-      case Success(fl) => { println(name + " :: " + fl.friends) }
+      case Success(fl) => { if(shouldPrint) println(name + " :: " + fl.friends) }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -191,7 +192,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val futPflMsg = getPendingFriendsList()
     val f = futPflMsg flatMap(pflMsg => sendAcceptanceOfPendingFriends(pflMsg))
     f onComplete{
-      case Success(r) => { println("Accepted Friends!" + r) }
+      case Success(r) => { if(shouldPrint) println(name + ": Accepted all pending friends!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
 
@@ -205,7 +206,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val f: Future[String] = pipeline(Post("http://localhost:8080/post",
       new NewPost(id,session,id,FbPost(msgEncrypted,name))))
     f onComplete {
-      case Success(r) => { println(name + ": I posted on my own wall!") }
+      case Success(r) => { if(shouldPrint) println(name + ": I posted on my own wall!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
     postNumber = postNumber + 1
@@ -224,7 +225,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val f: Future[String] = pipeline(Post("http://localhost:8080/post",
       new NewPost(id,session,idOfPage,FbPost(msgEncrypted,name))))
     f onComplete {
-      case Success(r) => { println(name + ": I posted on " + friendCard.name + "'s wall!") }
+      case Success(r) => { if(shouldPrint) println(name + ": I posted on " + friendCard.name + "'s wall!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
     postNumber = postNumber + 1
@@ -235,14 +236,14 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val fOwnPageMsg: Future[PageMsg] = getPage(id)
     fOwnPageMsg onComplete{
       case Success(ownPageMsg) => {
-        println(name + ": Reading my own wall!")
+        if(shouldPrint) println(name + ": Reading my own wall!")
         if(ownPageMsg.fbPosts.nonEmpty) {
           val mostRecentPost = ownPageMsg.fbPosts.last
           val decryptedMsg: String = new String(aes.decrypt(aeskey, mostRecentPost.encryptedMessage))
-          println(name + ": My most recent post was from " + mostRecentPost.posterName + " and it said - " + decryptedMsg)
+          if(shouldPrint) println(name + ": My most recent post was from " + mostRecentPost.posterName + " and it said '" + decryptedMsg + "'")
         }
         else{
-          println(name + ": There are no posts on my wall.")
+          if(shouldPrint) println(name + ": There are no posts on my wall.")
         }
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
@@ -261,8 +262,11 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       case Success(flmsg) => {
 
         val friends = flmsg.friends
-        val randFriend = friends(RNG.getRandNum(friends.length))
-        postOnFriendPage(randFriend)
+
+        if(friends.length > 0) {
+          val randFriend = friends(RNG.getRandNum(friends.length))
+          postOnFriendPage(randFriend)
+        }
 
       }
       case Failure(t) => println("An error has occured: " + t.getMessage)
@@ -280,7 +284,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
     val f: Future[String] = pipeline(Post("http://localhost:8080/profile", SetProfile(id, session, newProEncrypted)))
     f onComplete {
-      case Success(r) => { println(name + ": Updated my profile!") }
+      case Success(r) => { if(shouldPrint) println(name + ": Updated my profile!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
   }
@@ -292,7 +296,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
     val f: Future[String] = pipeline(Post("http://localhost:8080/album", NewPicture(id, session, newPicture)))
     f onComplete {
-      case Success(r) => { println(name + ": Posted a new picture in my album!") }
+      case Success(r) => { if(shouldPrint) println(name + ": Posted a new picture in my album!") }
       case Failure(t) => println("An error has occured: " + t.getMessage)
     }
 
@@ -306,6 +310,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     val futfl = getFriendsList()
     val futpage = futfl.flatMap{
       fl => {
+          if(fl.friends.length <= 0) throw new Exception("No friends!")
           randFriend = fl.friends(RNG.getRandNum(fl.friends.length))
           friendAesKey = aes.decodeSecretKey(rsa.decrypt(privateKey, randFriend.aesKeyEncrypted))
           getPage(randFriend.id)
@@ -315,73 +320,39 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     futpage onComplete {
       case Success(friendPage) => {
 
-        println(name + ": Reading "+ randFriend.name +"'s page...")
+        if(shouldPrint) println(name + ": Reading "+ randFriend.name +"'s page...")
 
         //Read the posts on the page.
         if(friendPage.fbPosts.nonEmpty) {
           val mostRecentPost = friendPage.fbPosts.last
           val decryptedMsg: String = new String(aes.decrypt(friendAesKey, mostRecentPost.encryptedMessage))
-          println(name + ": The most recent post on "+ randFriend.name +"'s page was from " + mostRecentPost.posterName + " and it said - " + decryptedMsg)
+          if(shouldPrint) println(name + ": The most recent post on "+ randFriend.name +"'s page was from " + mostRecentPost.posterName + " and it said '" + decryptedMsg + "'")
         }
         else{
-          println(name + ": There are no posts on "+ randFriend.name +"'s page.")
+          if(shouldPrint) println(name + ": There are no posts on "+ randFriend.name +"'s page.")
         }
 
         //Check the status on the page.
-        val friendProfileJson = new String(aes.decrypt(friendAesKey,friendPage.profileEncrypted)).parseJson
-        val friendProfile = friendProfileJson.convertTo[Profile]
-        println(name + ": " + randFriend.name +"'s has a relationship status of: " + friendProfile.relationship)
+        if(friendPage.profileEncrypted.nonEmpty){
+          val friendProfileJson = new String(aes.decrypt(friendAesKey,friendPage.profileEncrypted)).parseJson
+          val friendProfile = friendProfileJson.convertTo[Profile]
+          if(shouldPrint) println(name + ": " + randFriend.name +"'s has a relationship status of: " + friendProfile.relationship)
+        }
 
         //Look at the most recent photo of the page.
-        val mostRecentPhotoEncrypted = friendPage.album.last
-        val mostRecentPhoto = Picture(aes.decrypt(friendAesKey,mostRecentPhotoEncrypted.bytes))
-        println(name + ": " + randFriend.name +"'s last photo: " + mostRecentPhoto.toJson.prettyPrint)
+        if(friendPage.album.nonEmpty) {
+          val mostRecentPhotoEncrypted = friendPage.album.last
+          val mostRecentPhoto = Picture(aes.decrypt(friendAesKey, mostRecentPhotoEncrypted.bytes))
+          if (shouldPrint) println(name + ": " + randFriend.name + "'s last photo: " + mostRecentPhoto.toJson.prettyPrint)
+        }
+        else{
+          if (shouldPrint) println(name + ": " + randFriend.name + "'s album is empty.")
+        }
 
 
       }
-      case Failure(t) => println("An error has occured: " + t.getMessage)
+      case Failure(t) => ()
     }
-  }
-
-  //method to get their public key
-  def senderHelper(friendListMsg: FriendsListMsg): Future[String] = Future {
-    println("~~~~~~~~~~~~~~~~~")
-    val num = RNG.getRandNum(friendListMsg.friends.size)
-    val thatFriend = friendListMsg.friends(num).name
-
-    println("Friend: " + thatFriend)
-
-    val futurePubKey: Future[PublicKeyMsg] = getPublicKeyOf(thatFriend)
-    val f = futurePubKey flatMap(pubKeyMsg => senderHelperHelper(pubKeyMsg))
-
-//    val futFriendList = getFriendsList()
-//    val f = futFriendList flatMap(friendListMsg => senderHelper(friendListMsg))
-
-
-//    futurePubKey onComplete {
-//      case Success(r) => {
-//        println("THEIR PUB KEY :" + futurePubKey)
-//        println("decoded? :" + rsa.decodePublicKey(futurePubKey.publicKeyEncoded))
-//        println("~~~~~~~~~~~~~~~~~")
-//      }
-//      case Failure(t) => {
-//        println("Failed in senderHelper")
-//      }
-//    }
-
-    temp() //makes return future[String]
-  }
-
-  def senderHelperHelper(pubKeyMsg: PublicKeyMsg): Future[String] = Future {
-    val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
-
-    println("pub key: " + publicKeyOfFriend)
-
-    temp()
-  }
-
-  def temp(): String = {
-    return "hey"
   }
 
   def generatePrivateMessage(): String = {
@@ -399,108 +370,41 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
   }
 
   def sendPrivateMessage()  = {
-    println("sending private message!")
-
     val choice = generatePrivateMessage()
-    /*
-    steps:
-    1)get friends list
-    2)pick random friend
-    3)get their public key
-    4)encrypt my message with that key
-    5)add it to their postList
-     */
 
     val futFriendList = getFriendsList()
-                                                      // VV get public key
-//    val f = futFriendList flatMap(friendListMsg => senderHelper(friendListMsg))
 
     futFriendList onComplete {
       case Success(friendListMsg) => {
-//        println("****************")
-//        println("In on complete! Here is r: " + friendListMsg)
-        val num = RNG.getRandNum(friendListMsg.friends.size)
-        val thatFriend = friendListMsg.friends(num)
-        val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
+        if (friendListMsg.friends.size > 0){
+          val num = RNG.getRandNum(friendListMsg.friends.size)
+          val thatFriend = friendListMsg.friends(num)
+          val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
+          val encryptedMessage = rsa.encrypt(friendsPublicKey, choice.getBytes())
 
-        //how to get friends public key??
-        val encryptedMessage = rsa.encrypt(friendsPublicKey, choice.getBytes())
+          val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
+          pipeline(Post("http://localhost:8080/sendPrivateMessage", new NewPrivateMessage(id, session, thatFriend.id, FbMessage(encryptedMessage, name))))
 
-//        println("friends pubKey: " + friendsPublicKey + " encrypt " + encryptedMessage)
 
-        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-        pipeline(Post("http://localhost:8080/sendPrivateMessage", new NewPrivateMessage(id, session, thatFriend.id, FbMessage(encryptedMessage, name))))
-
-//
-//        println("friend: " + thatFriend)
-//        println("Pub key encoded: " + rsa.decodePublicKey(thatFriend.publicKeyEncoded))
-//
-//        val friendsPublicKey = rsa.decodePublicKey(thatFriend.publicKeyEncoded)
-//        val aesKeyEncrypted = rsa.encrypt(friendsPublicKey, aeskey.getEncoded) //need array of bytes
-//        val friendId = thatFriend.id
-////        val privateMessage = new FbMessage(choice, friendId, session, thatFriend.publicKeyEncoded, aesKeyEncrypted)
-//        val privateMessage = new FbMessage(choice, friendId, session)
-//
-//        val pipeline: HttpRequest => Future[String] = sendReceive ~> unmarshal[String]
-//        val f: Future[String] = pipeline(Post("http://localhost:8080/sendPrivateMessage", new FbMessage(choice, friendId, session)))
-//
-//        f onComplete{
-//          case Success(r) => { println("Sent a private message!" + r) }
-//          case Failure(t) => { println("ERROR: " + t) }
-//        }
-
-//        println("Friend: " + thatFriend)
-        println(name + " sent the private message: '" + choice + "' to " + thatFriend.name)
-//        println("****************")
-//        println(name + " :: " + fl.friends)
-////        println("___________________________")
-////        println("SIZE OF LIST: " + fl.friends.size)
-////        val friendsListSize = fl.friends.size
-////        val num = RNG.getRandNum(friendsListSize)
-////        println("Rando Num: " + num)
-//        val thatFriend = fl.friends(num)
-//        println("That friend: " + thatFriend)
-//        println("THEIR NAME: " + thatFriend.name) //pass into getPublicKeyOf
-////        val publicKeyOfFriend = rsa.decodePublicKey(pubKeyMsg.publicKeyEncoded)
-//        println("****************")
+          if (shouldPrint) println(name + ": sent the private message: '" + choice + "' to " + thatFriend.name)
+        }
       }
       case Failure(t) => { println("An error has occured: " + t.getMessage) }
     }
-
-
-//    val futPubKeyMsg = getPublicKeyOf(randFriendName)
-//    val f = futPubKeyMsg flatMap(pubKeyMsg => addSelfToPendingOfFriend(pubKeyMsg))
-//    f onComplete{
-//      case Success(r) => { println("Added a random friend!" + r) }
-//      case Failure(t) => println("An error has occured: " + t.getMessage)
-//    }
   }
 
   def readPrivateMessages()  = {
-    println("about to read my most recent private message!")
-    println("I'm: " + name)
-    /*
-    Steps:
-    1)Get Private message list
-    2)decrypt
-    3)read most recent!
-     */
-
     val futureOwnMessages: Future[PageMsg] = getPage(id)
 
     futureOwnMessages onComplete {
       case Success(ownMessages) => {
-        println(name + ": Reading my most recent private message!")
         if(ownMessages.fbMessages.size == 0) {
-          println("No private messages yet!")
+          if(shouldPrint) println(name + ": I don't have any private messages yet!")
         }
         else {
           val mostRecentPrivateMessage = ownMessages.fbMessages.last
-          //        val decyrptMessage: String = new String(aes.decrypt(aeskey, mostRecentPrivateMessage.encryptedMessage))
-//          println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  " + publicKey)
-          println(ownMessages.fbMessages.toString())
           val decryptMessage = new String(rsa.decrypt(privateKey, mostRecentPrivateMessage.encryptedMessage))
-          println(name + ": My most recent private message was from: " + mostRecentPrivateMessage.sender + " and it said: " + decryptMessage + " debug: " + mostRecentPrivateMessage.encryptedMessage)
+          if(shouldPrint) println(name + ": My most recent private message was from: " + mostRecentPrivateMessage.sender + " and it said: '" + decryptMessage + "'")
         }
       }
       case Failure(r) => {
@@ -508,7 +412,6 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       }
     }
 
-//    val futureMessageList: Future[]
   }
 
   def takeAction() = {
@@ -526,7 +429,7 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
       case 9 => readOwnPage()
 
     }
-    context.system.scheduler.scheduleOnce(2 seconds, self, TakeAction())
+    context.system.scheduler.scheduleOnce(delayBetweenActions millisecond, self, TakeAction())
   }
 
 
@@ -536,43 +439,39 @@ class Client(name_p: String, totalBobs: Int, delayMillis: Int) extends Actor {
     registerSelf()
   }
 
-  context.system.scheduler.scheduleOnce((2000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*2+delayMillis+totalBobs) millisecond) {
     login()
   }
 
-  context.system.scheduler.scheduleOnce((4000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*4+delayMillis+totalBobs) millisecond) {
     addRandomFriend()
   }
 
-  context.system.scheduler.scheduleOnce((6000+delayMillis) millisecond) {
-    printPendingFriendList()
-  }
-
-  context.system.scheduler.scheduleOnce((8000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*6+delayMillis+totalBobs) millisecond) {
     acceptFriends()
   }
 
-  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
-    printFriendList()
-  }
+//  context.system.scheduler.scheduleOnce((10000+delayMillis) millisecond) {
+//    printFriendList()
+//  }
 
-  context.system.scheduler.scheduleOnce((12000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*8+delayMillis+totalBobs) millisecond) {
     postOnRandomFriendPage()
   }
 
-  context.system.scheduler.scheduleOnce((14000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*9+delayMillis+totalBobs) millisecond) {
     updateProfile()
   }
 
-  context.system.scheduler.scheduleOnce((16000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*10+delayMillis+totalBobs) millisecond) {
     postPicture()
   }
 
-  context.system.scheduler.scheduleOnce((18000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*11+delayMillis+totalBobs) millisecond) {
     readRandomFriendPage()
   }
 
-  context.system.scheduler.scheduleOnce((20000+delayMillis) millisecond) {
+  context.system.scheduler.scheduleOnce((delayBetweenActions*12+delayMillis+totalBobs) millisecond) {
     self ! new TakeAction()
   }
 

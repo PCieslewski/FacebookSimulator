@@ -50,16 +50,16 @@ object Router extends App with SimpleRoutingApp{
     }~
     path("login"){
       post {
-        println("Got here")
+//        println("Got here")
         decompressRequest() {
           jsonpWithParameter("signedChallenge") {
             entity(as[SignedChallenge]) { signedChallenge =>
               detach() {
-                println("VERIFYING CHALLENGE")
+//                println("VERIFYING CHALLENGE")
                 val f: Future[LoginResponse] = (Backend.loginActor ? signedChallenge).mapTo[LoginResponse]
                 onComplete(f) {
                   case Success(loginResp: LoginResponse) => {
-                    println(new String(loginResp.sessionToken))
+//                    println(new String(loginResp.sessionToken))
                     complete(loginResp)
                   }
                   case Failure(t) => complete("Failed Login Procedure. : " + t)
@@ -69,7 +69,7 @@ object Router extends App with SimpleRoutingApp{
           }~
           entity(as[LoginRequest]) { loginReq =>
             detach() {
-              println("SENDING CHALLENGE")
+//              println("SENDING CHALLENGE")
               val f: Future[ChallengeResponse] = (Backend.loginActor ? loginReq).mapTo[ChallengeResponse]
               onComplete(f){
                 case Success(challengeResp: ChallengeResponse) => complete(challengeResp)
@@ -289,7 +289,7 @@ object Router extends App with SimpleRoutingApp{
                 }
               }
               else{
-                println("A user failed session verification in NewPost.")
+//                println("A user failed session verification in NewPost.")
                 complete("Not logged in.")
               }
             }
